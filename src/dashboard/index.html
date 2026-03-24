@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SEO内容站 - 控制面板</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    * { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    :root {
+      --bg: #0a0a0f; --surface: #12121a; --card: #1a1a24; --border: #2a2a3a;
+      --accent: #6366f1; --accent-glow: rgba(99, 102, 241, 0.3);
+      --success: #10b981; --warning: #f59e0b; --danger: #ef4444;
+      --text: #e2e8f0; --muted: #64748b;
+    }
+    body { background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 100%); color: var(--text); min-height: 100vh; margin: 0; }
+    .glass { background: rgba(26, 26, 36, 0.8); backdrop-filter: blur(20px); border: 1px solid var(--border); border-radius: 16px; }
+    .stat-card { background: linear-gradient(135deg, var(--card) 0%, rgba(26, 26, 36, 0.5) 100%); border: 1px solid var(--border); border-radius: 16px; padding: 20px; }
+    .input-field { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 10px 16px; color: white; width: 100%; box-sizing: border-box; }
+    .input-field:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+    .btn { padding: 10px 20px; border-radius: 10px; font-weight: 500; cursor: pointer; transition: all 0.2s; border: none; }
+    .btn:hover { transform: translateY(-2px); }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    .btn-primary { background: var(--accent); color: white; }
+    .btn-success { background: var(--success); color: white; }
+    .scrollbar-thin::-webkit-scrollbar { width: 6px; }
+    .scrollbar-thin::-webkit-scrollbar-track { background: var(--surface); border-radius: 3px; }
+    .scrollbar-thin::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .fade-in { animation: fadeIn 0.5s ease; }
+    .pulse-dot { animation: pulse 2s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    .code-block { background: #0d0d14; border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; font-family: 'Monaco', 'Menlo', monospace; font-size: 13px; overflow-x: auto; white-space: pre; }
+  </style>
+</head>
+<body>
+  <div id="root">⏳ 加载中...</div>
+  
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  
+  <script>
+    (function() {
+      'use strict';
+      
+      if (!window.React || !window.ReactDOM) {
+        document.getElementById('root').innerHTML = 
+          '<div style="padding:40px;text-align:center;color:#f59e0b;">' +
+          '<h2>⚠️ React 加载失败</h2>' +
+          '<p>请检查网络后刷新页面</p>' +
+          '<button onclick="location.reload()" style="padding:10px 20px;background:#6366f1;color:white;border:none;border-radius:8px;cursor:pointer;margin-top:16px;">刷新页面</button>' +
+          '</div>';
+        return;
+      }
+      
+      var e = React.createElement;
+      var useState = React.useState;
+      var useEffect = React.useEffect;
+      
+      function App() {
+        var _useState = useState({
+          siteName: 'SEO内容站',
+          autoRun: true,
+          runTime: '09:00',
+          sources: { baidu: true, weibo: true, zhihu: true, douyin: false },
+          articlesPerDay: 5
+        });
+        var config = _useState[0];
+        var setConfig = _useState[1];
+        
+        var _useState2 = useState({ totalArticles: 10, todayArticles: 0, lastRun: '-', status: 'idle' });
+        var stats = _useState2[0];
+        var setStats = _useState2[1];
+        
+        var _useState3 = useState([]);
+        var logs = _useState3[0];
+        var setLogs = _useState3[1];
+        
+        var _useState4 = useState([]);
+        var hotTopics = _useState4[0];
+        var setHotTopics = _useState4[1];
+        
+        var _useState5 = useState(false);
+        var loading = _useState5[0];
+        var setLoading = _useState5[1];
+        
+        var _useState6 = useState(false);
+        var showDeployGuide = _useState6[0];
+        var setShowDeployGuide = _useState6[1];
+        
+        var mockHotTopics = [
+          { rank: 1, title: 'AI人工智能最新突破', heat: '999万', source: 'baidu' },
+          { rank: 2, title: '新能源汽车补贴政策', heat: '888万', source: 'baidu' },
+          { rank: 3, title: '春季养生食疗方法', heat: '777万', source: 'zhihu' },
+          { rank: 4, title: '远程办公效率提升', heat: '666万', source: 'weibo' },
+          { rank: 5, title: '短视频创作技巧', heat: '555万', source: 'douyin' },
+          { rank: 6, title: '2026投资理财策略', heat: '444万', source: 'zhihu' },
+          { rank: 7, title: '健康减肥食谱推荐', heat: '333万', source: 'baidu' },
+          { rank: 8, title: '智能家居选购指南', heat: '222万', source: 'zhihu' },
+          { rank: 9, title: '编程学习路线图', heat: '111万', source: 'weibo' },
+          { rank: 10, title: '亲子教育方法分享', heat: '99万', source: 'douyin' }
+        ];
+        
+        function addLog(message, type) {
+          var time = new Date().toLocaleTimeString('zh-CN');
+          setLogs(function(prev) { return [{ time: time, message: message, type: type }].concat(prev).slice(0, 50); });
+        }
+        
+        function fetchHotTopics() {
+          setLoading(true);
+          addLog('开始抓取热门话题...', 'info');
+          setTimeout(function() {
+            setHotTopics(mockHotTopics);
+            addLog('成功获取 ' + mockHotTopics.length + ' 条热门话题', 'success');
+            setLoading(false);
+          }, 800);
+        }
+        
+        function runGenerate() {
+          setStats(function(prev) { return Object.assign({}, prev, { status: 'running' }); });
+          addLog('开始生成文章...', 'info');
+          setTimeout(function() {
+            setStats(function(prev) {
+              return Object.assign({}, prev, {
+                status: 'success',
+                todayArticles: config.articlesPerDay,
+                totalArticles: prev.totalArticles + config.articlesPerDay,
+                lastRun: new Date().toLocaleString('zh-CN')
+              });
+            });
+            addLog('成功生成 ' + config.articlesPerDay + ' 篇文章', 'success');
+          }, 1500);
+        }
+        
+        function saveConfig() {
+          localStorage.setItem('seo-config', JSON.stringify(config));
+          addLog('配置已保存', 'success');
+        }
+        
+        function openPreview() {
+          addLog('提示: 请先在终端运行 npm run dev', 'warning');
+          // 打开一个新窗口显示说明
+          var win = window.open('', '_blank');
+          if (win) {
+            win.document.write(
+              '<!DOCTYPE html><html><head><title>启动预览</title>' +
+              '<style>body{background:#1a1a2e;color:#e2e8f0;font-family:-apple-system,sans-serif;padding:60px;max-width:600px;margin:0 auto;}' +
+              'h1{color:#6366f1}code{background:#0d0d14;padding:2px 8px;border-radius:4px;}' +
+              '.step{background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.3);padding:20px;border-radius:12px;margin:20px 0;}' +
+              '.btn{background:#10b981;color:white;padding:12px 24px;border:none;border-radius:8px;cursor:pointer;text-decoration:none;display:inline-block;margin-top:20px;}' +
+              '</style></head><body>' +
+              '<h1>🚀 启动本地预览</h1>' +
+              '<p>本地预览需要先启动开发服务器。请按以下步骤操作：</p>' +
+              '<div class="step">' +
+              '<h3>步骤 1: 打开终端</h3>' +
+              '<p>按 <code>Cmd + 空格</code>，输入 <code>Terminal</code>，回车</p>' +
+              '</div>' +
+              '<div class="step">' +
+              '<h3>步骤 2: 进入项目目录</h3>' +
+              '<p><code>cd ~/.qclaw/workspace/seo-content-site</code></p>' +
+              '</div>' +
+              '<div class="step">' +
+              '<h3>步骤 3: 启动服务器</h3>' +
+              '<p><code>npm run dev</code></p>' +
+              '</div>' +
+              '<div class="step">' +
+              '<h3>步骤 4: 访问网站</h3>' +
+              '<p>服务器启动后，点击下方按钮访问：</p>' +
+              '<a href="http://localhost:5173" class="btn" target="_blank">打开 http://localhost:5173</a>' +
+              '</div>' +
+              '<p style="color:#888;margin-top:40px;">💡 提示：你也可以双击桌面的「🌐本地预览网站」一键启动</p>' +
+              '</body></html>'
+            );
+            win.document.close();
+          }
+        }
+        
+        useEffect(function() {
+          var saved = localStorage.getItem('seo-config');
+          if (saved) {
+            try {
+              var parsed = JSON.parse(saved);
+              setConfig(function(prev) { return Object.assign({}, prev, parsed); });
+            } catch(err) {}
+          }
+          fetchHotTopics();
+        }, []);
+        
+        var sourceIcons = { baidu: '🔍', weibo: '📢', zhihu: '💡', douyin: '🎵' };
+        
+        return e('div', { style: { minHeight: '100vh' } },
+          // Header
+          e('header', { className: 'glass', style: { position: 'sticky', top: 0, zIndex: 50, padding: '16px 24px', marginBottom: 24 } },
+            e('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', maxWidth: 1400, margin: '0 auto' } },
+              e('div', { style: { display: 'flex', alignItems: 'center', gap: 12 } },
+                e('div', { style: { width: 40, height: 40, borderRadius: 12, background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold', fontSize: 18 } }, 'S'),
+                e('div', null,
+                  e('h1', { style: { fontSize: 20, fontWeight: 'bold', margin: 0 } }, 'SEO内容站'),
+                  e('p', { style: { fontSize: 12, color: '#888', margin: 0 } }, '控制面板')
+                )
+              ),
+              e('div', { style: { display: 'flex', alignItems: 'center', gap: 12 } },
+                e('button', { onClick: openPreview, style: { padding: '8px 16px', background: '#374151', borderRadius: 8, color: 'white', border: 'none', cursor: 'pointer', fontSize: 14 } }, '🖥️ 本地预览'),
+                e('div', { style: { display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 } },
+                  e('div', { className: stats.status === 'running' ? 'pulse-dot' : '', style: { width: 8, height: 8, borderRadius: '50%', background: stats.status === 'running' ? '#f59e0b' : stats.status === 'success' ? '#10b981' : '#6b7280' } }),
+                  e('span', { style: { color: '#888' } }, stats.status === 'running' ? '运行中' : stats.status === 'success' ? '成功' : '待机')
+                )
+              )
+            )
+          ),
+          
+          // Main Content
+          e('main', { style: { maxWidth: 1400, margin: '0 auto', padding: '0 24px 48px' } },
+            // Stat Cards
+            e('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 24 } },
+              [
+                { label: '总文章数', value: stats.totalArticles, icon: '📄' },
+                { label: '今日生成', value: stats.todayArticles, icon: '✨' },
+                { label: '上次运行', value: stats.lastRun, icon: '⏰' },
+                { label: '运行时间', value: config.runTime, icon: '📅' }
+              ].map(function(card, i) {
+                return e('div', { key: i, className: 'stat-card fade-in' },
+                  e('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' } },
+                    e('div', null,
+                      e('p', { style: { color: '#888', fontSize: 14, margin: '0 0 4px 0' } }, card.label),
+                      e('p', { style: { fontSize: 24, fontWeight: 'bold', margin: 0 } }, card.value)
+                    ),
+                    e('div', { style: { width: 40, height: 40, borderRadius: 12, background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 } }, card.icon)
+                  )
+                );
+              })
+            ),
+            
+            // Deploy Section
+            e('div', { className: 'glass', style: { padding: 24, marginBottom: 24 } },
+              e('h2', { style: { fontSize: 18, fontWeight: 600, margin: '0 0 16px 0' } }, '🚀 部署到云端（免费域名 + SSL证书）'),
+              e('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 } },
+                // Vercel
+                e('div', { style: { background: 'rgba(16,185,129,0.1)', borderRadius: 12, padding: 20, border: '1px solid rgba(16,185,129,0.3)' } },
+                  e('h3', { style: { margin: '0 0 8px 0', color: '#10b981' } }, '🌿 Vercel（推荐）'),
+                  e('p', { style: { fontSize: 14, color: '#888', margin: '0 0 12px 0' } }, '免费域名 + 自动SSL证书 + 全球CDN'),
+                  e('button', { 
+                    onClick: function() { setShowDeployGuide(true); },
+                    className: 'btn btn-success', 
+                    style: { width: '100%' } 
+                  }, '📋 查看部署教程')
+                ),
+                // Netlify
+                e('div', { style: { background: 'rgba(0,199,183,0.1)', borderRadius: 12, padding: 20, border: '1px solid rgba(0,199,183,0.3)' } },
+                  e('h3', { style: { margin: '0 0 8px 0', color: '#00c7b7' } }, '🌊 Netlify'),
+                  e('p', { style: { fontSize: 14, color: '#888', margin: '0 0 12px 0' } }, '拖拽部署，简单易用'),
+                  e('a', { 
+                    href: 'https://app.netlify.com/drop', 
+                    target: '_blank', 
+                    style: { display: 'block', textAlign: 'center', padding: '10px 20px', background: '#00c7b7', color: 'white', borderRadius: 10, textDecoration: 'none' } 
+                  }, '访问 Netlify →')
+                ),
+                // Cloudflare
+                e('div', { style: { background: 'rgba(243,128,32,0.1)', borderRadius: 12, padding: 20, border: '1px solid rgba(243,128,32,0.3)' } },
+                  e('h3', { style: { margin: '0 0 8px 0', color: '#f38020' } }, '⚡ Cloudflare Pages'),
+                  e('p', { style: { fontSize: 14, color: '#888', margin: '0 0 12px 0' } }, '无限带宽，全球加速'),
+                  e('a', { 
+                    href: 'https://pages.cloudflare.com/', 
+                    target: '_blank', 
+                    style: { display: 'block', textAlign: 'center', padding: '10px 20px', background: '#f38020', color: 'white', borderRadius: 10, textDecoration: 'none' } 
+                  }, '访问 Cloudflare →')
+                )
+              )
+            ),
+            
+            // Deploy Guide Modal
+            showDeployGuide ? e('div', { 
+              style: { 
+                position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, 
+                background: 'rgba(0,0,0,0.8)', 
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                zIndex: 1000,
+                padding: 20
+              },
+              onClick: function() { setShowDeployGuide(false); }
+            },
+              e('div', { 
+                className: 'glass',
+                style: { maxWidth: 700, maxHeight: '80vh', overflow: 'auto', padding: 32 },
+                onClick: function(ev) { ev.stopPropagation(); }
+              },
+                e('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 } },
+                  e('h2', { style: { margin: 0, fontSize: 22 } }, '🚀 Vercel 部署教程'),
+                  e('button', { 
+                    onClick: function() { setShowDeployGuide(false); },
+                    style: { background: 'none', border: 'none', color: '#888', fontSize: 24, cursor: 'pointer' }
+                  }, '×')
+                ),
+                
+                e('div', { style: { marginBottom: 24 } },
+                  e('h3', { style: { color: '#10b981', marginBottom: 12 } }, '准备工作'),
+                  e('p', { style: { color: '#888', lineHeight: 1.6 } }, '你需要一个 GitHub 账号。如果没有，请先到 github.com 注册。')
+                ),
+                
+                e('div', { style: { marginBottom: 24 } },
+                  e('h3', { style: { color: '#6366f1', marginBottom: 12 } }, '步骤 1: 创建 GitHub 仓库'),
+                  e('p', { style: { color: '#888', marginBottom: 12 } }, '1. 访问 github.com 并登录'),
+                  e('p', { style: { color: '#888', marginBottom: 12 } }, '2. 点击右上角 + → New repository'),
+                  e('p', { style: { color: '#888', marginBottom: 12 } }, '3. 仓库名填: seo-content-site'),
+                  e('p', { style: { color: '#888' }, marginBottom: 12 }, '4. 选择 Public，点击 Create repository')
+                ),
+                
+                e('div', { style: { marginBottom: 24 } },
+                  e('h3', { style: { color: '#6366f1', marginBottom: 12 } }, '步骤 2: 推送代码到 GitHub'),
+                  e('p', { style: { color: '#888', marginBottom: 8 } }, '在终端执行：'),
+                  e('div', { className: 'code-block', style: { color: '#10b981' } }, 
+                    'cd ~/.qclaw/workspace/seo-content-site\n' +
+                    'git init\n' +
+                    'git remote add origin https://github.com/你的用户名/seo-content-site.git\n' +
+                    'git add .\n' +
+                    'git commit -m "Initial commit"\n' +
+                    'git push -u origin main'
+                  )
+                ),
+                
+                e('div', { style: { marginBottom: 24 } },
+                  e('h3', { style: { color: '#6366f1', marginBottom: 12 } }, '步骤 3: 在 Vercel 导入项目'),
+                  e('p', { style: { color: '#888', marginBottom: 12 } }, '1. 访问 vercel.com 并用 GitHub 登录'),
+                  e('p', { style: { color: '#888', marginBottom: 12 } }, '2. 点击 "Add New..." → "Project"'),
+                  e('p', { style: { color: '#888', marginBottom: 12 } }, '3. 选择你刚创建的 seo-content-site 仓库'),
+                  e('p', { style: { color: '#888', marginBottom: 12 } }, '4. Framework 选择 "Vite"'),
+                  e('p', { style: { color: '#888' }, marginBottom: 12 }, '5. 点击 "Deploy"，等待约 1-2 分钟')
+                ),
+                
+                e('div', { style: { marginBottom: 24, padding: 16, background: 'rgba(16,185,129,0.1)', borderRadius: 12 } },
+                  e('h3', { style: { color: '#10b981', marginBottom: 12 } }, '🎉 部署成功后'),
+                  e('p', { style: { color: '#888', marginBottom: 8 } }, 'Vercel 会自动分配一个免费域名：'),
+                  e('p', { style: { color: '#6366f1' } }, 'https://seo-content-site-xxx.vercel.app'),
+                  e('p', { style: { color: '#888', marginTop: 12 } }, '✅ 自动 HTTPS（SSL证书已配置）'),
+                  e('p', { style: { color: '#888' } }, '✅ 全球 CDN 加速'),
+                  e('p', { style: { color: '#888' } }, '✅ 每次 git push 自动更新')
+                ),
+                
+                e('div', { style: { marginTop: 24, textAlign: 'center' } },
+                  e('a', { 
+                    href: 'https://vercel.com/signup', 
+                    target: '_blank',
+                    style: { display: 'inline-block', padding: '12px 32px', background: '#10b981', color: 'white', borderRadius: 10, textDecoration: 'none', fontWeight: 500 }
+                  }, '前往 Vercel 注册 →')
+                )
+              )
+            ) : null,
+            
+            // Two Columns
+            e('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: 24 } },
+              // Hot Topics
+              e('div', { className: 'glass', style: { padding: 24 } },
+                e('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 } },
+                  e('h2', { style: { fontSize: 18, fontWeight: 600, margin: 0 } }, '🔥 热门话题'),
+                  e('button', { onClick: fetchHotTopics, disabled: loading, className: 'btn btn-primary', style: { opacity: loading ? 0.6 : 1 } }, loading ? '刷新中...' : '刷新')
+                ),
+                e('div', { style: { maxHeight: 300, overflowY: 'auto' }, className: 'scrollbar-thin' },
+                  hotTopics.map(function(topic, i) {
+                    return e('div', { key: i, style: { display: 'flex', alignItems: 'center', gap: 12, padding: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 10, marginBottom: 6 } },
+                      e('span', { style: { width: 22, height: 22, borderRadius: 6, background: '#374151', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 'bold' } }, topic.rank),
+                      e('span', { style: { fontSize: 16 } }, sourceIcons[topic.source] || '📌'),
+                      e('span', { style: { flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, topic.title),
+                      e('span', { style: { fontSize: 11, color: '#888' } }, topic.heat)
+                    );
+                  })
+                )
+              ),
+              
+              // Config Panel
+              e('div', { className: 'glass', style: { padding: 24 } },
+                e('h2', { style: { fontSize: 18, fontWeight: 600, margin: '0 0 20px 0' } }, '⚙️ 配置'),
+                e('div', { style: { display: 'grid', gap: 16 } },
+                  e('div', null,
+                    e('label', { style: { display: 'block', fontSize: 14, color: '#888', marginBottom: 8 } }, '网站名称'),
+                    e('input', { type: 'text', value: config.siteName, onChange: function(ev) { setConfig(function(c) { return Object.assign({}, c, { siteName: ev.target.value }); }); }, className: 'input-field' })
+                  ),
+                  e('div', null,
+                    e('label', { style: { display: 'block', fontSize: 14, color: '#888', marginBottom: 8 } }, '每日生成文章数'),
+                    e('input', { type: 'number', min: 1, max: 20, value: config.articlesPerDay, onChange: function(ev) { setConfig(function(c) { return Object.assign({}, c, { articlesPerDay: parseInt(ev.target.value) || 5 }); }); }, className: 'input-field' })
+                  )
+                ),
+                
+                // Data Sources
+                e('div', { style: { marginTop: 20 } },
+                  e('h3', { style: { fontSize: 14, color: '#888', marginBottom: 12 } }, '数据源'),
+                  e('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 } },
+                    [
+                      { key: 'baidu', name: '百度热搜', icon: '🔍' },
+                      { key: 'weibo', name: '微博热搜', icon: '📢' },
+                      { key: 'zhihu', name: '知乎热榜', icon: '💡' },
+                      { key: 'douyin', name: '抖音热点', icon: '🎵' }
+                    ].map(function(src) {
+                      var enabled = config.sources[src.key];
+                      return e('button', {
+                        key: src.key,
+                        onClick: function() {
+                          setConfig(function(c) {
+                            var ns = Object.assign({}, c.sources);
+                            ns[src.key] = !ns[src.key];
+                            return Object.assign({}, c, { sources: ns });
+                          });
+                        },
+                        style: { padding: 10, borderRadius: 10, border: enabled ? '1px solid #6366f1' : '1px solid #374151', background: enabled ? 'rgba(99,102,241,0.15)' : 'rgba(255,255,255,0.03)', textAlign: 'left', cursor: 'pointer', color: enabled ? 'white' : '#888' }
+                      }, src.icon + ' ' + src.name);
+                    })
+                  )
+                ),
+                
+                // Buttons
+                e('div', { style: { marginTop: 24, display: 'flex', gap: 12 } },
+                  e('button', { onClick: saveConfig, className: 'btn btn-primary', style: { flex: 1 } }, '保存配置'),
+                  e('button', { onClick: runGenerate, disabled: stats.status === 'running', className: 'btn btn-success', style: { flex: 1 } }, stats.status === 'running' ? '生成中...' : '立即生成')
+                )
+              )
+            ),
+            
+            // Logs
+            e('div', { className: 'glass', style: { padding: 24, marginTop: 24 } },
+              e('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 } },
+                e('h2', { style: { fontSize: 18, fontWeight: 600, margin: 0 } }, '📋 运行日志'),
+                e('button', { onClick: function() { setLogs([]); }, style: { fontSize: 14, color: '#888', background: 'none', border: 'none', cursor: 'pointer' } }, '清空')
+              ),
+              e('div', { style: { height: 150, overflowY: 'auto', background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 16, fontSize: 13 }, className: 'scrollbar-thin' },
+                logs.length === 0
+                  ? e('p', { style: { color: '#666', textAlign: 'center', padding: 24 } }, '暂无日志，点击按钮开始操作')
+                  : logs.map(function(log, i) {
+                      var colors = { info: '#60a5fa', success: '#34d399', error: '#f87171', warning: '#fbbf24' };
+                      return e('div', { key: i, style: { padding: '4px 0', color: colors[log.type] || '#888' } },
+                        e('span', { style: { color: '#666', marginRight: 8 } }, '[' + log.time + ']'),
+                        log.message
+                      );
+                    })
+              )
+            )
+          )
+        );
+      }
+      
+      try {
+        ReactDOM.createRoot(document.getElementById('root')).render(e(App));
+      } catch(err) {
+        document.getElementById('root').innerHTML = '<div style="padding:40px;color:#ef4444;"><h2>❌ 渲染错误</h2><p>' + err.message + '</p></div>';
+      }
+    })();
+  </script>
+</body>
+</html>
