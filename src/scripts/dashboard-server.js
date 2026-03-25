@@ -78,8 +78,8 @@ var server = http.createServer(function(req, res) {
 
   var pathname = url.parse(req.url).pathname
 
-  // API: GET /api/posts
-  if (pathname === '/api/posts') {
+  // API: GET /api/posts 或 /data/posts.json
+  if (pathname === '/api/posts' || pathname === '/data/posts.json') {
     sendFile(res, path.join(ROOT, 'public/data/posts.json'), 'application/json')
     return
   }
