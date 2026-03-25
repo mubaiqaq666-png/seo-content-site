@@ -42,10 +42,11 @@ function sendFile(res, filePath, contentType) {
   })
 }
 
-function runScript(scriptPath) {
+function runScript(scriptPath, args) {
+  args = args || []
   return new Promise(function(resolve, reject) {
     var logs = []
-    var child = spawn('node', [scriptPath], { cwd: ROOT })
+    var child = spawn('node', [scriptPath].concat(args), { cwd: ROOT })
     child.stdout.on('data', function(d) { logs.push(d.toString()) })
     child.stderr.on('data', function(d) { logs.push(d.toString()) })
     child.on('close', function(code) { resolve({ code: code, logs: logs.join('') }) })
@@ -91,26 +92,16 @@ var server = http.createServer(function(req, res) {
     req.on('end', function() {
       var options = {}
       try { options = JSON.parse(body || '{}') } catch(e) {}
-      var categories = options.categories || null
       var limit = parseInt(options.limit) || 10
-      console.log('[API] 一键抓取生成请求, 分类:', categories || '全部', '数量:', limit)
+      console.log('[API] 抓取真实文章, 数量:', limit)
       ;(async function() {
         try {
-          // 1. 抓取话题
-          console.log('[1/2] 抓取热门话题...')
-          await runScript(path.join(ROOT, 'src/scripts/fetchHotTopics.js'))
-
-          // 2. 生成文章
-          console.log('[2/2] 生成文章...')
-          var genScript = path.join(ROOT, 'src/scripts/dailyGenerate.js')
-          // 修改 dailyGenerate 传入分类参数（通过环境变量）
-          process.env.FETCH_CATS = categories ? categories.join(',') : ''
-          process.env.FETCH_LIMIT = String(limit)
-          await runScript(genScript)
-
-          var posts = JSON.parse(fs.readFileSync(path.join(ROOT, 'public/data/posts.json'), 'utf-8'))
-          console.log('[OK] 完成，共 ' + posts.posts.length + ' 篇文章')
-          sendJSON(res, { success: true, count: posts.posts.length })
+          var before = JSON.parse(fs.readFileSync(path.join(ROOT, 'public/data/posts.json'), 'utf-8')).posts.length
+          // 直接运行抓取脚本（内部自动去重+推送）
+          await runScript(path.join(ROOT, 'src/scripts/fetchHotTopics.js'), [String(limit)])
+          var after = JSON.parse(fs.readFileSync(path.join(ROOT, 'public/data/posts.json'), 'utf-8')).posts.length
+          console.log('[OK] 完成，' + before + ' → ' + after + ' 篇文章')
+          sendJSON(res, { success: true, count: after, added: after - before })
         } catch(e) {
           console.error('[ERROR]', e.message)
           sendJSON(res, { success: false, error: e.message }, 500)
