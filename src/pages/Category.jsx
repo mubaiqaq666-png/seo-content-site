@@ -1,7 +1,6 @@
-import { Link } from 'react-router-dom'
+import { useParams, Link } from 'react-router-dom'
 import { useState, useEffect } from 'react'
-import { useParams } from 'react-router-dom'
-import AdComponent from '../components/AdComponent'
+import { PostCard } from './Home'
 
 function Category() {
   const { category } = useParams()
@@ -11,67 +10,40 @@ function Category() {
   useEffect(() => {
     setLoading(true)
     fetch('/data/posts.json')
-      .then(res => res.json())
+      .then(r => r.json())
       .then(data => {
-        const filtered = data.posts.filter(p => p.category === category)
-        setPosts(filtered.sort((a, b) => new Date(b.date) - new Date(a.date)))
+        const filtered = data.posts
+          .filter(p => p.category === category)
+          .sort((a, b) => new Date(b.date) - new Date(a.date))
+        setPosts(filtered)
         setLoading(false)
       })
       .catch(() => setLoading(false))
   }, [category])
 
   return (
-    <>
-      <section className="bg-gray-800 text-white py-12">
-        <div className="container-custom">
-          <h1 className="text-3xl font-bold mb-4">分类: {category}</h1>
-          <p className="text-gray-300">共 {posts.length} 篇相关文章</p>
+    <div className="max-w-7xl mx-auto px-4 py-6">
+      <div className="flex items-center gap-3 mb-6">
+        <div className="w-1 h-6 bg-red-500 rounded"></div>
+        <h1 className="text-xl font-bold text-gray-900">{category}</h1>
+        <span className="text-sm text-gray-400">共 {posts.length} 篇</span>
+        <div className="flex-1 h-px bg-gray-200"></div>
+        <Link to="/" className="text-sm text-gray-400 hover:text-red-600">← 返回首页</Link>
+      </div>
+
+      {loading ? (
+        <div className="flex justify-center py-20">
+          <div className="animate-spin h-8 w-8 border-4 border-red-500 border-t-transparent rounded-full"></div>
         </div>
-      </section>
-
-      <AdComponent position="top" />
-
-      <section className="py-12 container-custom">
-        {loading ? (
-          <div className="flex justify-center py-12">
-            <div className="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full"></div>
-          </div>
-        ) : posts.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {posts.map(post => (
-              <Link
-                key={post.slug}
-                to={`/posts/${post.slug}`}
-                className="bg-white rounded-xl shadow-sm hover:shadow-lg transition p-6 block"
-              >
-                <span className="inline-block bg-blue-100 text-blue-600 text-sm px-3 py-1 rounded-full mb-3">
-                  {post.category}
-                </span>
-                <h3 className="text-xl font-semibold mb-2 hover:text-blue-600">
-                  {post.title}
-                </h3>
-                <p className="text-gray-600 mb-4 line-clamp-2">
-                  {post.description}
-                </p>
-                <div className="flex items-center text-sm text-gray-500">
-                  <span>{post.date}</span>
-                </div>
-              </Link>
-            ))}
-          </div>
-        ) : (
-          <p className="text-center text-gray-500 py-12">该分类暂无文章</p>
-        )}
-
-        <div className="mt-8 text-center">
-          <Link to="/posts" className="text-blue-600 hover:underline">
-            ← 返回全部文章
-          </Link>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          {posts.map(post => <PostCard key={post.slug} post={post} />)}
+          {posts.length === 0 && (
+            <div className="col-span-3 text-center py-20 text-gray-400">该分类暂无文章</div>
+          )}
         </div>
-      </section>
-
-      <AdComponent position="bottom" />
-    </>
+      )}
+    </div>
   )
 }
 
