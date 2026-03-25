@@ -382,33 +382,69 @@ function generateFAQ(topic, category, realContent) {
   return [...faqs, ...base]
 }
 
+
 async function rewriteToArticle(topic) {
   const { title, source, sourceName, heat, tags = [] } = topic
   const category = detectCategory(title)
   const date = new Date().toISOString().split('T')[0]
   const slug = generateSlug(title + '-' + date)
 
-  let realContent = null
-  try { realContent = await fetchRealContent(title) } catch (e) {}
-  if (!realContent) { try { realContent = await fetchFromRSS(title) } catch (e) {} }
+  // 尝试抓取真实新闻内容
+  let realTitle = null, realDesc = null, realUrl = null
+  try {
+    const url = `https://www.bing.com/news/search?q=${encodeURIComponent(title)}&first=1&count=3&format=RSS`
+    const xml = await fetchText(url)
+    const items = xml.match(/<item>([\s\S]*?)<\/item>/g)
+    if (items && items.length > 0) {
+      const item = items[0]
+      const tm = item.match(/<title>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/title>/)
+      const dm = item.match(/<description>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/description>/gi)
+      const lm = item.match(/<link>([\s\S]*?)<\/link>/)
+      if (tm) {
+        realTitle = tm[1].replace(/<[^>]+>/g, '').trim()
+        if (dm) {
+          const raw = Array.isArray(dm) ? dm[dm.length-1] : dm
+          realDesc = raw.replace(/<[^>]+>/g, '').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&nbsp;/g,' ').trim()
+        }
+        if (lm) realUrl = lm[1].trim()
+      }
+    }
+  } catch(e) {}
 
-  let content
-  if (realContent && realContent.description && realContent.description.length > 50) {
-    content = generateRealNewsContent(title, category, realContent.description)
+  // 优先用真实标题，否则用原话题
+  const articleTitle = (realTitle && realTitle.length > 5) ? realTitle : title
+
+  // 生成纯文字内容（直接引用真实描述段落）
+  let content = ''
+  if (realDesc && realDesc.length > 30) {
+    // 把描述分成几个自然段落展示
+    const sentences = realDesc.split(/[。！？；]/).filter(s => s.trim().length > 5)
+    if (sentences.length >= 2) {
+      content = '<p>' + realDesc + '</p>'
+    } else {
+      content = '<p>' + realDesc + '</p>'
+    }
   } else {
-    content = generateRealNewsContent(title, category, null)
+    // 没有真实内容，不生成虚假段落，直接引用标题作为导语
+    content = '<p>' + articleTitle + '。</p>'
   }
 
-  const faq = generateFAQ(title, category, realContent)
-  const description = realContent && realContent.description
-    ? realContent.description.slice(0, 160).replace(/<[^>]+>/g, '') + '...'
-    : `关于"${title}"的深度报道，${category}领域热门话题，引发广泛讨论。`
+  // 简单FAQ（不做填充式回答）
+  const faq = [
+    { question: `本文信息来源？`, answer: '本文内容来源于公开新闻报道。' },
+    { question: `${articleTitle}的具体情况是什么？`, answer: realDesc ? realDesc.slice(0, 200) + (realDesc.length > 200 ? '...' : '') : '请参阅正文报道。' }
+  ]
+
+  // 描述：直接用真实描述
+  const description = realDesc
+    ? realDesc.slice(0, 160).replace(/<[^>]+>/g, '') + '...'
+    : articleTitle + '。'
 
   return {
-    title,
+    title: articleTitle,
     slug,
     description,
-    keywords: [title, category, ...tags, '热点', '资讯', '2026'],
+    keywords: [articleTitle, category, ...tags, '热点', '资讯', '2026'],
     category,
     tags: [...new Set([...tags, category])],
     coverImage: getCoverImage(category, slug),
@@ -424,14 +460,6 @@ async function rewriteToArticle(topic) {
   }
 }
 
-async function generateArticlesFromTopics(topicsData, limit = 10, categories = null) {
-  let allTopics = topicsData.flatMap(d => d.topics)
-  if (categories && categories.length > 0) {
-    allTopics = allTopics.filter(t => categories.includes(detectCategory(t.title)))
-  }
-  const selected = allTopics.slice(0, limit)
-  return Promise.all(selected.map(topic => rewriteToArticle(topic)))
-}
 
 export {
   fetchAllTopics,
