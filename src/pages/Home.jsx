@@ -1,291 +1,230 @@
-import { Link } from 'react-router-dom'
-import { useState, useEffect } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { useState, useEffect, useRef } from 'react'
 
-const SOURCE_COLORS = {
-  '百度热搜': 'bg-blue-100 text-blue-700',
-  '微博热搜': 'bg-red-100 text-red-700',
-  '知乎热榜': 'bg-blue-100 text-blue-600',
-  '36氪': 'bg-green-100 text-green-700',
-  'IT之家': 'bg-orange-100 text-orange-700',
-}
+const CI = { '科技':'💻','财经':'📈','社会':'🏙️','娱乐':'🎬','体育':'⚽','健康':'🌿','生活':'🏠','国际':'🌍','热点':'🔥' }
+const CC = { '科技':'bg-purple-100 text-purple-700','财经':'bg-yellow-100 text-yellow-700','社会':'bg-gray-100 text-gray-700','娱乐':'bg-pink-100 text-pink-700','体育':'bg-green-100 text-green-700','健康':'bg-teal-100 text-teal-700','生活':'bg-orange-100 text-orange-700','国际':'bg-indigo-100 text-indigo-700','热点':'bg-red-100 text-red-700' }
+const CGRAD = { '科技':'from-purple-800 to-blue-900','财经':'from-yellow-800 to-orange-900','社会':'from-gray-700 to-gray-900','娱乐':'from-pink-800 to-purple-900','体育':'from-green-800 to-teal-900','健康':'from-teal-700 to-green-900','生活':'from-orange-700 to-red-900','国际':'from-indigo-800 to-blue-900','热点':'from-red-800 to-orange-900' }
 
-const CAT_COLORS = {
-  '科技': 'bg-purple-100 text-purple-700',
-  '财经': 'bg-yellow-100 text-yellow-700',
-  '社会': 'bg-gray-100 text-gray-700',
-  '娱乐': 'bg-pink-100 text-pink-700',
-  '体育': 'bg-green-100 text-green-700',
-  '健康': 'bg-teal-100 text-teal-700',
-  '生活': 'bg-orange-100 text-orange-700',
-  '国际': 'bg-indigo-100 text-indigo-700',
-  '热点': 'bg-red-100 text-red-700',
-}
-
-const CAT_GRADIENTS = {
-  '科技': 'from-purple-800 to-blue-900',
-  '财经': 'from-yellow-800 to-orange-900',
-  '社会': 'from-gray-700 to-gray-900',
-  '娱乐': 'from-pink-800 to-purple-900',
-  '体育': 'from-green-800 to-teal-900',
-  '健康': 'from-teal-700 to-green-900',
-  '生活': 'from-orange-700 to-red-900',
-  '国际': 'from-indigo-800 to-blue-900',
-  '热点': 'from-red-800 to-orange-900',
-}
-
-// 图片加载失败时的渐变背景
-function CoverImage({ src, category, alt, className }) {
-  const [error, setError] = useState(false)
-  const gradient = CAT_GRADIENTS[category] || 'from-gray-700 to-gray-900'
-  if (error || !src) {
-    return <div className={`bg-gradient-to-br ${gradient} ${className}`} />
-  }
+// 滚动热点条
+function NewsTicker({ posts }) {
+  const [idx, setIdx] = useState(0)
+  const timer = useRef(null)
+  const hot = posts.slice(0, 12)
+  useEffect(() => {
+    timer.current = setInterval(() => setIdx(i => (i + 1) % hot.length), 4000)
+    return () => clearInterval(timer.current)
+  }, [hot.length])
+  if (!hot.length) return null
   return (
-    <img
-      src={src}
-      alt={alt}
-      className={`object-cover ${className}`}
-      onError={() => setError(true)}
-      loading="lazy"
-    />
-  )
-}
-
-// 大卡片（首页 Hero 区）
-function HeroCard({ post }) {
-  const catColor = CAT_COLORS[post.category] || 'bg-gray-100 text-gray-700'
-  return (
-    <Link to={`/posts/${post.slug}`} className="block group relative overflow-hidden rounded-xl shadow-md hover:shadow-xl transition-all duration-300">
-      <div className="relative h-52 overflow-hidden">
-        <CoverImage src={post.coverImage} category={post.category} alt={post.title} className="w-full h-full transition-transform duration-500 group-hover:scale-105" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-        <div className="absolute top-3 left-3 flex gap-2">
-          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${catColor}`}>{post.category}</span>
-          {post.heat && <span className="text-xs bg-orange-500 text-white px-2 py-0.5 rounded-full font-medium">🔥 {post.heat}</span>}
+    <div className="bg-red-600 text-white">
+      <div className="max-w-7xl mx-auto px-4 flex items-center h-9 gap-3">
+        <span className="flex-shrink-0 bg-white/20 px-2.5 py-0.5 rounded font-bold text-xs">🔥 热点</span>
+        <div className="flex-1 relative h-5 overflow-hidden">
+          {hot.map((p, i) => (
+            <Link key={p.slug} to={`/posts/${p.slug}`}
+              className={`absolute inset-0 flex items-center text-sm transition-opacity duration-500 ${i === idx ? 'opacity-100' : 'opacity-0'}`}>
+              <span className="mr-2 text-red-200">•</span>
+              <span className="truncate hover:text-red-200">{p.title}</span>
+            </Link>
+          ))}
         </div>
-        <div className="absolute bottom-0 left-0 right-0 p-4">
-          <h2 className="text-white font-bold text-base leading-snug line-clamp-2 group-hover:text-orange-200 transition">{post.title}</h2>
-          <div className="flex items-center gap-3 mt-2 text-xs text-white/70">
-            <span>{post.source}</span>
-            <span>·</span>
-            <span>{post.date}</span>
-            {post.readTime && <><span>·</span><span>约{post.readTime}分钟</span></>}
-          </div>
+        <div className="flex-shrink-0 flex gap-1">
+          {hot.slice(0, 5).map((_, i) => (
+            <button key={i} onClick={() => { clearInterval(timer.current); setIdx(i); timer.current = setInterval(() => setIdx(x => (x+1)%hot.length), 4000) }}
+              className={`rounded-full transition-all ${i === idx ? 'bg-white w-4 h-1.5' : 'bg-white/40 w-1.5 h-1.5'}`} />
+          ))}
         </div>
       </div>
-    </Link>
+    </div>
   )
 }
 
-// 普通列表卡片
-function PostCard({ post, size = 'normal' }) {
-  const catColor = CAT_COLORS[post.category] || 'bg-gray-100 text-gray-700'
-  const srcColor = SOURCE_COLORS[post.source] || 'bg-gray-100 text-gray-600'
+// 图片（带错误降级）
+function Img({ src, cat, alt, cls }) {
+  const [ok, setOk] = useState(false)
+  const [err, setErr] = useState(false)
+  if (err || !src) return <div className={`bg-gradient-to-br ${CGRAD[cat]||'from-gray-700 to-gray-900'} ${cls}`} />
+  return <img src={src} alt={alt} className={`${cls} ${ok ? '' : 'opacity-0'}`} style={{transition:'opacity 0.4s'}}
+    onLoad={() => setOk(true)} onError={() => setErr(true)} />
+}
 
-  if (size === 'large') {
-    return (
-      <Link to={`/posts/${post.slug}`} className="block group">
-        <div className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 border border-gray-100">
-          <div className="relative h-40 overflow-hidden">
-            <CoverImage src={post.coverImage} category={post.category} alt={post.title} className="w-full h-full transition-transform duration-500 group-hover:scale-105" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-            <span className={`absolute top-2 left-2 text-xs px-2 py-0.5 rounded-full font-medium ${catColor}`}>{post.category}</span>
-          </div>
-          <div className="p-4">
-            <h2 className="font-bold text-base text-gray-900 group-hover:text-red-600 transition line-clamp-2 mb-2">{post.title}</h2>
-            <p className="text-gray-500 text-sm line-clamp-2 mb-3">{post.description}</p>
-            <div className="flex items-center justify-between text-xs text-gray-400">
-              <span className={`px-2 py-0.5 rounded-full ${srcColor}`}>{post.source}</span>
-              <div className="flex items-center gap-2">
-                {post.readTime && <span>📖 {post.readTime}min</span>}
-                <span>{post.date}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </Link>
-    )
-  }
-
+// Hero 大卡片
+function HeroCard({ post, large, onClick }) {
   return (
-    <Link to={`/posts/${post.slug}`} className="block group">
-      <div className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 border border-gray-100 flex gap-0">
-        {/* 缩略图 */}
-        <div className="relative w-28 h-20 flex-shrink-0 overflow-hidden">
-          <CoverImage src={post.coverImage} category={post.category} alt={post.title} className="w-full h-full transition-transform duration-300 group-hover:scale-105" />
+    <div className={`group relative overflow-hidden rounded-xl cursor-pointer shadow-md hover:shadow-xl transition-all duration-300 ${large?'h-80':'h-52'}`} onClick={onClick}>
+      <div className="absolute inset-0">
+        <Img src={post.coverImage} cat={post.category} alt={post.title} cls="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
+      </div>
+      <div className="absolute bottom-0 left-0 right-0 p-4">
+        <div className="flex items-center gap-2 mb-2">
+          <span className={`text-xs px-2.5 py-0.5 rounded-full font-semibold ${CC[post.category]||'bg-red-100 text-red-700'}`}>{post.category}</span>
+          {post.heat && <span className="text-xs bg-orange-500 text-white px-2 py-0.5 rounded-full font-semibold">🔥 {post.heat}</span>}
         </div>
-        {/* 内容 */}
-        <div className="flex-1 min-w-0 p-3">
-          <div className="flex items-center gap-1.5 mb-1">
-            <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${catColor}`}>{post.category}</span>
-            {post.heat && <span className="text-xs text-orange-500 font-medium">🔥</span>}
-          </div>
-          <h3 className="font-semibold text-gray-900 group-hover:text-red-600 transition line-clamp-2 text-sm leading-snug">{post.title}</h3>
-          <div className="flex items-center gap-2 text-xs text-gray-400 mt-1.5">
-            <span className={`px-1.5 py-0.5 rounded ${srcColor}`}>{post.source}</span>
-            <span>{post.date}</span>
-          </div>
+        <h2 className={`font-bold text-white leading-snug group-hover:text-red-200 transition ${large?'text-xl md:text-2xl':'text-base'} line-clamp-2 mb-2`}>{post.title}</h2>
+        <div className="flex items-center gap-3 text-xs text-white/60">
+          {post.date && <span>{post.date}</span>}
+          {post.readTime && <><span>·</span><span>约{post.readTime}分钟</span></>}
+          {post.views && <><span>·</span><span>👁 {(post.views/1000).toFixed(1)}k</span></>}
         </div>
       </div>
-    </Link>
+    </div>
   )
 }
 
-function Home() {
+// 普通文章卡片
+function Card({ post }) {
+  return (
+    <div className="group flex gap-3 bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md hover:border-gray-200 transition-all duration-200 cursor-pointer overflow-hidden p-3"
+      onClick={() => window.location.href = `/posts/${post.slug}`}>
+      {post.coverImage && (
+        <div className="flex-shrink-0 w-24 h-16 rounded-lg overflow-hidden">
+          <Img src={post.coverImage} cat={post.category} alt={post.title} cls="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
+        </div>
+      )}
+      {!post.coverImage && (
+        <div className={`flex-shrink-0 w-24 h-16 rounded-lg bg-gradient-to-br ${CGRAD[post.category]||'from-gray-700 to-gray-900'} flex items-center justify-center`}>
+          <span className="text-2xl opacity-30">{CI[post.category]||'📰'}</span>
+        </div>
+      )}
+      <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
+        <h3 className="font-semibold text-gray-900 group-hover:text-red-600 transition line-clamp-2 leading-snug text-sm">{post.title}</h3>
+        <div className="flex items-center gap-2 text-xs text-gray-400 mt-1.5">
+          <span className={`px-1.5 py-0.5 rounded ${CC[post.category]||'bg-gray-100 text-gray-600'}`}>{post.category}</span>
+          {post.readTime && <span>{post.readTime}分钟</span>}
+          {post.views && <><span>·</span><span>👁 {(post.views/1000).toFixed(1)}k</span></>}
+          <span>·</span><span>{post.date}</span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// 分类小标签按钮
+function CatBtn({ cat, active, onClick }) {
+  return (
+    <button onClick={onClick}
+      className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium transition-all whitespace-nowrap flex-shrink-0 ${active?'bg-red-500 text-white shadow-sm':'bg-white text-gray-600 border border-gray-200 hover:border-red-300 hover:text-red-500'}`}>
+      <span>{CI[cat]}</span><span>{cat}</span>
+    </button>
+  )
+}
+
+// 主组件
+export { Card as PostCard, CC as CAT_COLORS, CGRAD as CAT_GRADIENTS, CI as CAT_ICONS, HeroCard, Img as CoverImage }
+export default function Home() {
   const [posts, setPosts] = useState([])
-  const [categories, setCategories] = useState({})
-  const [loading, setLoading] = useState(true)
+  const [byCat, setByCat] = useState({})
+  const [cat, setCat] = useState('all')
+  const [time, setTime] = useState('all')  // all / 24h / 3d / week
+  const [search, setSearch] = useState('')
+  const [sr, setSr] = useState(false)  // search result mode
+  const now = new Date()
 
   useEffect(() => {
-    fetch('/data/posts.json')
-      .then(r => r.json())
-      .then(data => {
-        const sorted = [...data.posts].sort((a, b) => new Date(b.date) - new Date(a.date))
-        setPosts(sorted)
-        const cats = {}
-        sorted.forEach(p => {
-          if (!cats[p.category]) cats[p.category] = []
-          if (cats[p.category].length < 6) cats[p.category].push(p)
-        })
-        setCategories(cats)
-        setLoading(false)
-      })
-      .catch(() => setLoading(false))
+    fetch('/data/posts.json').then(r => r.json()).then(d => {
+      const s = [...d.posts].sort((a, b) => new Date(b.date) - new Date(a.date))
+      setPosts(s)
+      const c = {}
+      s.forEach(p => { if (!c[p.category]) c[p.category] = []; if (c[p.category].length < 6) c[p.category].push(p) })
+      setByCat(c)
+    })
   }, [])
 
-  if (loading) return (
-    <div className="flex justify-center items-center min-h-96">
-      <div className="animate-spin h-8 w-8 border-4 border-red-500 border-t-transparent rounded-full"></div>
-    </div>
-  )
+  function hoursAgo(h) { return now - new Date(now) < h * 3600000 }
 
-  const latest = posts.slice(0, 20)
-  const hero = latest.slice(0, 5)       // 顶部 Hero 区
-  const listPosts = latest.slice(5, 17) // 列表区
+  const filtered = posts.filter(p => {
+    let catOk = cat === 'all' || p.category === cat
+    let timeOk = true
+    if (time === '24h') timeOk = (now - new Date(p.date)) < 86400000
+    else if (time === '3d') timeOk = (now - new Date(p.date)) < 259200000
+    else if (time === 'week') timeOk = (now - new Date(p.date)) < 604800000
+    let srchOk = !sr || !search || p.title.includes(search) || (p.description||'').includes(search)
+    return catOk && timeOk && srchOk
+  })
+
+  const hero0 = filtered[0]
+  const hero1 = filtered.slice(1, 4)
+
+  function doSearch(e) {
+    e.preventDefault()
+    if (search.trim()) setSr(true)
+  }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-6">
+    <div className="bg-gray-50">
+      <NewsTicker posts={posts} />
 
-      {/* ===== Hero 区：大图卡片 ===== */}
-      <div className="mb-8">
-        <div className="flex items-center gap-3 mb-4">
-          <span className="bg-red-600 text-white text-xs font-bold px-2 py-1 rounded">今日热点</span>
-          <span className="text-gray-500 text-sm">{new Date().toLocaleDateString('zh-CN', { month: 'long', day: 'numeric' })} 更新</span>
-          <div className="flex-1 h-px bg-gray-200"></div>
-          <Link to="/posts" className="text-sm text-red-600 hover:underline">查看全部 →</Link>
-        </div>
+      <div className="max-w-7xl mx-auto px-4 py-5">
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {/* 主推大图 */}
-          {hero[0] && (
-            <Link to={`/posts/${hero[0].slug}`} className="lg:col-span-2 block group relative overflow-hidden rounded-xl shadow-md hover:shadow-xl transition-all duration-300">
-              <div className="relative h-72 overflow-hidden">
-                <CoverImage src={hero[0].coverImage} category={hero[0].category} alt={hero[0].title} className="w-full h-full transition-transform duration-500 group-hover:scale-105" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
-                <div className="absolute top-4 left-4 flex gap-2">
-                  <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${CAT_COLORS[hero[0].category] || 'bg-gray-100 text-gray-700'}`}>{hero[0].category}</span>
-                  {hero[0].heat && <span className="text-xs bg-orange-500 text-white px-2.5 py-1 rounded-full font-semibold">🔥 {hero[0].heat}</span>}
-                </div>
-                <div className="absolute bottom-0 left-0 right-0 p-5">
-                  <h2 className="text-white font-bold text-xl leading-snug line-clamp-2 group-hover:text-orange-200 transition mb-2">{hero[0].title}</h2>
-                  <p className="text-white/70 text-sm line-clamp-2 mb-3">{hero[0].description}</p>
-                  <div className="flex items-center gap-3 text-xs text-white/60">
-                    <span>{hero[0].source}</span><span>·</span>
-                    <span>{hero[0].date}</span>
-                    {hero[0].readTime && <><span>·</span><span>约{hero[0].readTime}分钟阅读</span></>}
-                    {hero[0].views && <><span>·</span><span>👁 {(hero[0].views/1000).toFixed(1)}k</span></>}
-                  </div>
-                </div>
-              </div>
-            </Link>
-          )}
-
-          {/* 右侧小图堆叠 */}
-          <div className="flex flex-col gap-3">
-            {hero.slice(1, 4).map(post => (
-              <HeroCard key={post.slug} post={post} />
-            ))}
+        {/* 搜索栏 */}
+        <form onSubmit={doSearch} className="mb-5 flex gap-2 max-w-lg">
+          <div className="flex-1 flex items-center bg-white rounded-xl px-4 h-10 border border-gray-200 focus-within:border-red-400 focus-within:ring-2 focus-within:ring-red-50 transition-all">
+            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+            <input value={search} onChange={e => { setSearch(e.target.value); if (!e.target.value) setSr(false) }}
+              placeholder="搜索资讯..." className="flex-1 bg-transparent outline-none text-sm text-gray-700 ml-2.5" />
           </div>
+          <button type="submit" className="px-6 h-10 bg-red-500 hover:bg-red-600 text-white rounded-xl text-sm font-medium transition-colors">搜索</button>
+        </form>
+
+        {/* 时间筛选 */}
+        <div className="flex items-center gap-2 mb-5">
+          {[['all','全部'],['24h','24小时'],['3d','3天内'],['week','本周']].map(([v,l]) => (
+            <button key={v} onClick={() => setTime(v)}
+              className={`px-3 py-1 rounded-lg text-xs font-medium transition ${time===v?'bg-red-50 text-red-600 border border-red-200':'text-gray-500 hover:bg-gray-100'}`}>{l}</button>
+          ))}
+          <span className="ml-auto text-xs text-gray-400">{filtered.length} 篇</span>
+          {sr && <button onClick={() => { setSr(false); setSearch('') } } className="text-xs text-red-500 hover:underline">清除搜索</button>}
         </div>
+
+        {/* 搜索结果 */}
+        {sr && (
+          <div className="mb-5 p-4 bg-white rounded-xl border border-gray-200">
+            <p className="text-sm text-gray-500">搜索 "<span className="font-semibold text-gray-800">{search}</span>" · {filtered.length} 条结果</p>
+          </div>
+        )}
+
+        {/* Hero 大图 */}
+        {!sr && filtered.length > 0 && (
+          <div className="mb-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              <div className="lg:col-span-2">{hero0 && <HeroCard post={hero0} large onClick={() => window.location.href = `/posts/${hero0.slug}`} />}</div>
+              <div className="flex flex-col gap-3">{hero1.map(p => <HeroCard key={p.slug} post={p} onClick={() => window.location.href = `/posts/${p.slug}`} />)}</div>
+            </div>
+          </div>
+        )}
+
+        {/* 分类文章 */}
+        {!sr && Object.entries(byCat).filter(([c]) => cat === 'all' || cat === c).map(([c, ps]) => (
+          <div key={c} className="mb-8">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-1 h-5 bg-red-500 rounded-full"></div>
+              <h2 className="font-bold text-gray-900 text-lg">{CI[c]} {c}</h2>
+              <span className="text-xs text-gray-400">{ps.length}篇</span>
+              <div className="flex-1 h-px bg-gray-100"></div>
+              <Link to={`/category/${c}`} className="text-xs text-red-500 hover:underline">查看更多 →</Link>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {ps.slice(0, 4).map(p => <Card key={p.slug} post={p} />)}
+            </div>
+          </div>
+        ))}
+
+        {/* 最新资讯 */}
+        {!sr && (
+          <div className="mb-8">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-1 h-5 bg-red-500 rounded-full"></div>
+              <h2 className="font-bold text-gray-900 text-lg">📰 最新资讯</h2>
+              <div className="flex-1 h-px bg-gray-100"></div>
+              <Link to="/posts" className="text-xs text-red-500 hover:underline">全部 →</Link>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {filtered.slice(cat==='all'?4:0, cat==='all'?12:8).map(p => <Card key={p.slug} post={p} />)}
+            </div>
+          </div>
+        )}
       </div>
-
-      {/* ===== 主内容 + 侧边栏 ===== */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
-
-        {/* 左侧：最新资讯列表 */}
-        <div className="lg:col-span-2">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-1 h-5 bg-red-500 rounded"></div>
-            <h2 className="font-bold text-gray-900">最新资讯</h2>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {listPosts.map(post => <PostCard key={post.slug} post={post} />)}
-          </div>
-          <div className="mt-4 text-center">
-            <Link to="/posts" className="inline-block px-6 py-2 border border-red-500 text-red-600 rounded-full text-sm hover:bg-red-50 transition">
-              加载更多 →
-            </Link>
-          </div>
-        </div>
-
-        {/* 右侧边栏 */}
-        <div className="space-y-5">
-          {/* 热点排行 */}
-          <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100 bg-gray-50">
-              <span className="text-red-500">🔥</span>
-              <span className="font-semibold text-gray-800 text-sm">热点排行</span>
-            </div>
-            <div className="divide-y divide-gray-50">
-              {posts.slice(0, 10).map((post, i) => (
-                <Link key={post.slug} to={`/posts/${post.slug}`}
-                  className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition group">
-                  <span className={`w-5 h-5 rounded text-xs font-bold flex items-center justify-center flex-shrink-0 ${i < 3 ? 'bg-red-500 text-white' : 'bg-gray-100 text-gray-500'}`}>
-                    {i + 1}
-                  </span>
-                  <span className="text-sm text-gray-700 group-hover:text-red-600 transition line-clamp-1 flex-1">{post.title}</span>
-                </Link>
-              ))}
-            </div>
-          </div>
-
-          {/* 分类导航 */}
-          <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
-              <span className="font-semibold text-gray-800 text-sm">📁 热门分类</span>
-            </div>
-            <div className="p-3 grid grid-cols-4 gap-2">
-              {Object.keys(CAT_COLORS).map(cat => (
-                <Link key={cat} to={`/category/${cat}`}
-                  className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-gray-50 transition group">
-                  <span className="text-xl">{{'科技':'💻','财经':'📈','社会':'🏙️','娱乐':'🎬','体育':'⚽','健康':'🌿','生活':'🏠','国际':'🌍','热点':'🔥'}[cat]}</span>
-                  <span className="text-xs text-gray-600 group-hover:text-red-600 transition">{cat}</span>
-                </Link>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ===== 分类专区 ===== */}
-      {Object.entries(categories).slice(0, 4).map(([cat, catPosts]) => (
-        <div key={cat} className="mb-10">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <div className="w-1 h-5 bg-red-500 rounded"></div>
-              <h2 className="font-bold text-gray-900">{cat}</h2>
-              <span className="text-xs text-gray-400">({catPosts.length} 篇)</span>
-            </div>
-            <Link to={`/category/${cat}`} className="text-sm text-red-600 hover:underline">更多 →</Link>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {catPosts.slice(0, 3).map(post => <PostCard key={post.slug} post={post} size="large" />)}
-          </div>
-        </div>
-      ))}
     </div>
   )
 }
-
-export { PostCard, HeroCard, CoverImage, CAT_COLORS, SOURCE_COLORS, CAT_GRADIENTS }
-export default Home
