@@ -93,16 +93,12 @@ var server = http.createServer(function(req, res) {
       ;(async function() {
         try {
           // 1. 抓取话题
-          console.log('[1/3] 抓取热门话题...')
+          console.log('[1/2] 抓取热门话题...')
           await runScript(path.join(ROOT, 'src/scripts/fetchHotTopics.js'))
 
-          // 2. 生成文章
-          console.log('[2/3] 生成文章...')
+          // 2. 生成文章（dailyGenerate 已包含 Git 推送）
+          console.log('[2/2] 生成文章并推送...')
           await runScript(path.join(ROOT, 'src/scripts/dailyGenerate.js'))
-
-          // 3. 推送
-          console.log('[3/3] 推送到 GitHub...')
-          await runGitPush()
 
           // 返回结果
           var posts = JSON.parse(fs.readFileSync(path.join(ROOT, 'public/data/posts.json'), 'utf-8'))
