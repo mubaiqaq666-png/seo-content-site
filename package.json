@@ -10,7 +10,9 @@
     "deploy": "node src/scripts/deploy.js",
     "daily": "node src/scripts/dailyGenerate.js",
     "fetch": "node src/scripts/fetchHotTopics.js",
-    "dashboard": "node src/scripts/dashboard-server.js"
+    "dashboard": "node src/scripts/dashboard-server.js",
+    "cms": "node src/scripts/cms.js",
+    "sync": "bash sync.sh"
   },
   "dependencies": {
     "react": "^18.2.0",

@@ -1,44 +1,47 @@
 #!/bin/bash
 
-# 创建所有桌面快捷方式
 DESKTOP="$HOME/Desktop"
-PROJECT_DIR="$HOME/.qclaw/workspace/seo-content-site"
 
 echo "📦 创建桌面快捷方式..."
 
-# 1. 主菜单快捷方式
-APP_DIR="$DESKTOP/SEO内容站.app"
-rm -rf "$APP_DIR"
-mkdir -p "$APP_DIR/Contents/MacOS"
-
-cat > "$APP_DIR/Contents/MacOS/launcher" << 'EOF'
-#!/usr/bin/osascript
-tell application "Terminal"
-    activate
-    do script "bash ~/.qclaw/workspace/seo-content-site/launcher.sh"
-end tell
-EOF
-chmod +x "$APP_DIR/Contents/MacOS/launcher"
-
-cat > "$APP_DIR/Contents/Info.plist" << 'EOF'
+# 通用创建函数
+make_app() {
+  local name="$1"
+  local script="$2"
+  local app="$DESKTOP/${name}.app"
+  rm -rf "$app"
+  mkdir -p "$app/Contents/MacOS"
+  echo "$script" > "$app/Contents/MacOS/launcher"
+  chmod +x "$app/Contents/MacOS/launcher"
+  cat > "$app/Contents/Info.plist" << EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
     <key>CFBundleExecutable</key><string>launcher</string>
-    <key>CFBundleName</key><string>SEO内容站</string>
+    <key>CFBundleName</key><string>${name}</string>
     <key>CFBundlePackageType</key><string>APPL</string>
 </dict>
 </plist>
 EOF
+}
 
-# 2. 控制面板快捷方式
-DASHBOARD_APP="$DESKTOP/SEO控制面板.app"
-rm -rf "$DASHBOARD_APP"
-mkdir -p "$DASHBOARD_APP/Contents/MacOS"
+# 1. 内容管理器（CMS）
+make_app "✏️ 内容管理器" '#!/usr/bin/osascript
+tell application "Terminal"
+    activate
+    do script "cd ~/.qclaw/workspace/seo-content-site && node src/scripts/cms.js"
+end tell'
 
-cat > "$DASHBOARD_APP/Contents/MacOS/launcher" << 'EOF'
-#!/usr/bin/osascript
+# 2. 一键同步到云端
+make_app "☁️ 同步到云端" '#!/usr/bin/osascript
+tell application "Terminal"
+    activate
+    do script "bash ~/.qclaw/workspace/seo-content-site/sync.sh"
+end tell'
+
+# 3. 控制面板
+make_app "🖥️ SEO控制面板" '#!/usr/bin/osascript
 tell application "Terminal"
     activate
     do script "bash ~/.qclaw/workspace/seo-content-site/start-dashboard.sh"
@@ -47,81 +50,17 @@ delay 2
 tell application "Safari"
     activate
     open location "http://localhost:3001"
-end tell
-EOF
-chmod +x "$DASHBOARD_APP/Contents/MacOS/launcher"
+end tell'
 
-cat > "$DASHBOARD_APP/Contents/Info.plist" << 'EOF'
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>CFBundleExecutable</key><string>launcher</string>
-    <key>CFBundleName</key><string>SEO控制面板</string>
-    <key>CFBundlePackageType</key><string>APPL</string>
-</dict>
-</plist>
-EOF
-
-# 3. 一键部署到 Vercel
-DEPLOY_APP="$DESKTOP/🚀部署到云端.app"
-rm -rf "$DEPLOY_APP"
-mkdir -p "$DEPLOY_APP/Contents/MacOS"
-
-cat > "$DEPLOY_APP/Contents/MacOS/launcher" << 'EOF'
-#!/usr/bin/osascript
+# 4. 每日自动生成
+make_app "🔥 每日自动生成" '#!/usr/bin/osascript
 tell application "Terminal"
     activate
-    do script "bash ~/.qclaw/workspace/seo-content-site/deploy-vercel.sh"
-end tell
-EOF
-chmod +x "$DEPLOY_APP/Contents/MacOS/launcher"
-
-cat > "$DEPLOY_APP/Contents/Info.plist" << 'EOF'
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>CFBundleExecutable</key><string>launcher</string>
-    <key>CFBundleName</key><string>🚀部署到云端</string>
-    <key>CFBundlePackageType</key><string>APPL</string>
-</dict>
-</plist>
-EOF
-
-# 4. 快速生成
-GENERATE_APP="$DESKTOP/✨快速生成文章.app"
-rm -rf "$GENERATE_APP"
-mkdir -p "$GENERATE_APP/Contents/MacOS"
-
-cat > "$GENERATE_APP/Contents/MacOS/launcher" << 'EOF'
-#!/usr/bin/osascript
-tell application "Terminal"
-    activate
-    do script "cd ~/.qclaw/workspace/seo-content-site && npm run generate && echo '' && echo '按任意键关闭...' && read -n 1"
-end tell
-EOF
-chmod +x "$GENERATE_APP/Contents/MacOS/launcher"
-
-cat > "$GENERATE_APP/Contents/Info.plist" << 'EOF'
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>CFBundleExecutable</key><string>launcher</string>
-    <key>CFBundleName</key><string>✨快速生成文章</string>
-    <key>CFBundlePackageType</key><string>APPL</string>
-</dict>
-</plist>
-EOF
+    do script "cd ~/.qclaw/workspace/seo-content-site && node src/scripts/dailyGenerate.js"
+end tell'
 
 # 5. 本地预览
-PREVIEW_APP="$DESKTOP/🌐本地预览网站.app"
-rm -rf "$PREVIEW_APP"
-mkdir -p "$PREVIEW_APP/Contents/MacOS"
-
-cat > "$PREVIEW_APP/Contents/MacOS/launcher" << 'EOF'
-#!/usr/bin/osascript
+make_app "🌐 本地预览网站" '#!/usr/bin/osascript
 tell application "Terminal"
     activate
     do script "cd ~/.qclaw/workspace/seo-content-site && npm run dev"
@@ -130,32 +69,21 @@ delay 3
 tell application "Safari"
     activate
     open location "http://localhost:5173"
-end tell
-EOF
-chmod +x "$PREVIEW_APP/Contents/MacOS/launcher"
+end tell'
 
-cat > "$PREVIEW_APP/Contents/Info.plist" << 'EOF'
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>CFBundleExecutable</key><string>launcher</string>
-    <key>CFBundleName</key><string>🌐本地预览网站</string>
-    <key>CFBundlePackageType</key><string>APPL</string>
-</dict>
-</plist>
-EOF
+# 6. 打开线上网站
+make_app "🚀 打开线上网站" '#!/usr/bin/osascript
+tell application "Safari"
+    activate
+    open location "https://seo-content-site.vercel.app/"
+end tell'
 
 echo ""
 echo "✅ 已创建桌面快捷方式:"
 echo ""
-echo "   📱 SEO内容站        - 主菜单"
-echo "   🖥️  SEO控制面板      - 可视化配置"
-echo "   🚀 部署到云端        - ⭐一键部署到 Vercel（免费域名+SSL）"
-echo "   ✨ 快速生成文章      - 一键生成"
-echo "   🌐 本地预览网站      - 启动本地服务器"
-echo ""
-echo "💡 提示："
-echo "   • 首次部署需要 GitHub 账号"
-echo "   • Vercel 提供免费域名和 SSL 证书"
-echo "   • 部署后每次 git push 会自动更新网站"
+echo "   ✏️  内容管理器     - 增删改文章、批量添加关键词"
+echo "   ☁️  同步到云端     - 一键推送到 Vercel"
+echo "   🖥️  SEO控制面板   - 可视化配置"
+echo "   🔥 每日自动生成   - 抓取热搜生成文章"
+echo "   🌐 本地预览网站   - 启动本地服务器"
+echo "   🚀 打开线上网站   - 直接打开 Vercel 网站"

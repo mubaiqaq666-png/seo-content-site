@@ -9,7 +9,7 @@ function SEOMeta({
   canonical 
 }) {
   const location = useLocation()
-  const baseUrl = 'https://your-domain.com' // 部署时替换为实际域名
+  const baseUrl = 'https://seo-content-site.vercel.app' // 部署时替换为实际域名
   
   const fullTitle = title ? `${title} | SEO内容站` : 'SEO内容站 - 专业的SEO优化指南'
   const fullDescription = description || '提供高质量的SEO优化内容和教程，帮助您提升网站排名'

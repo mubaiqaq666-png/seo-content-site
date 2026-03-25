@@ -170,7 +170,7 @@ function writePosts(posts) {
 
 // 生成 sitemap.xml
 function generateSitemap(posts) {
-  const baseUrl = 'https://your-domain.com' // 部署时替换为实际域名
+  const baseUrl = 'https://seo-content-site.vercel.app' // 部署时替换为实际域名
   const today = new Date().toISOString().split('T')[0]
 
   let sitemap = `<?xml version="1.0" encoding="UTF-8"?>
@@ -233,7 +233,7 @@ function generateSitemap(posts) {
 
 // 生成 robots.txt
 function generateRobots() {
-  const baseUrl = 'https://your-domain.com' // 部署时替换为实际域名
+  const baseUrl = 'https://seo-content-site.vercel.app' // 部署时替换为实际域名
   
   const robots = `# robots.txt for SEO Content Site
 User-agent: *

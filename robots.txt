@@ -3,7 +3,7 @@ User-agent: *
 Allow: /
 
 # Sitemap
-Sitemap: https://your-domain.com/sitemap.xml
+Sitemap: https://seo-content-site.vercel.app/sitemap.xml
 
 # Disallow admin/private areas (if any)
 Disallow: /admin/
