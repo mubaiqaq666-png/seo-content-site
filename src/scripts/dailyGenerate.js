@@ -27,7 +27,9 @@ async function main() {
 
   // 2. 生成文章
   console.log('\n✍️  改写文章中...')
-  const newArticles = generateArticlesFromTopics(topicsData, 10)
+  const cats = process.env.FETCH_CATS ? process.env.FETCH_CATS.split(',').filter(Boolean) : null
+  const limit = parseInt(process.env.FETCH_LIMIT) || 10
+  const newArticles = generateArticlesFromTopics(topicsData, limit, cats)
   newArticles.forEach(a => console.log(`  ✅ ${a.title} [${a.category}]`))
 
   // 3. 合并到现有数据

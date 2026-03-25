@@ -1,96 +1,60 @@
 import { useParams, Link } from 'react-router-dom'
 import { useState, useEffect } from 'react'
-import { PostCard, CoverImage, CAT_COLORS, SOURCE_COLORS, CAT_GRADIENTS } from './Home'
+import { CoverImage, CAT_COLORS, CAT_GRADIENTS } from './Home'
 
-// Bilibili 视频嵌入组件
-function VideoCard({ video }) {
-  const [playing, setPlaying] = useState(false)
+// 阅读进度条
+function ReadingProgress() {
+  const [progress, setProgress] = useState(0)
+  useEffect(() => {
+    function onScroll() {
+      const el = document.documentElement
+      const scrollTop = el.scrollTop || document.body.scrollTop
+      const scrollHeight = el.scrollHeight - el.clientHeight
+      setProgress(scrollHeight > 0 ? Math.round((scrollTop / scrollHeight) * 100) : 0)
+    }
+    window.addEventListener('scroll', onScroll)
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
   return (
-    <div className="rounded-lg overflow-hidden border border-gray-100 shadow-sm bg-white">
-      {playing ? (
-        <div className="relative" style={{ paddingBottom: '56.25%' }}>
-          <iframe
-            className="absolute inset-0 w-full h-full"
-            src={`https://player.bilibili.com/player.html?bvid=${video.bvid}&autoplay=1&high_quality=1`}
-            scrolling="no"
-            frameBorder="0"
-            allowFullScreen
-            title={video.title}
-          />
-        </div>
-      ) : (
-        <div className="relative cursor-pointer group" onClick={() => setPlaying(true)}>
-          <div className="relative h-36 overflow-hidden">
-            <CoverImage src={video.cover} category="科技" alt={video.title} className="w-full h-full transition-transform duration-300 group-hover:scale-105" />
-            <div className="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition flex items-center justify-center">
-              <div className="w-12 h-12 bg-white/90 rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                <svg className="w-5 h-5 text-red-600 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M8 5v14l11-7z"/>
-                </svg>
-              </div>
-            </div>
-          </div>
-          <div className="p-3">
-            <p className="text-sm font-medium text-gray-800 line-clamp-2">{video.title}</p>
-            <p className="text-xs text-gray-400 mt-1">点击播放 · Bilibili</p>
-          </div>
-        </div>
-      )}
+    <div className="fixed top-0 left-0 right-0 z-50 h-1 bg-gray-100">
+      <div className="h-full bg-gradient-to-r from-red-500 to-orange-400 transition-all duration-100" style={{ width: progress + '%' }} />
     </div>
   )
 }
 
-// 图片画廊组件（文章内嵌图片）
-function ArticleGallery({ category, slug }) {
-  const [selected, setSelected] = useState(null)
-  // 根据分类生成相关图片集
-  const galleryImages = {
-    '科技': [
-      { url: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=600&h=400&fit=crop', caption: '前沿科技探索' },
-      { url: 'https://images.unsplash.com/photo-1677442135703-1787eea5ce01?w=600&h=400&fit=crop', caption: 'AI技术应用' },
-      { url: 'https://images.unsplash.com/photo-1620712943543-bcc4688e7485?w=600&h=400&fit=crop', caption: '智能硬件' },
-    ],
-    '财经': [
-      { url: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=600&h=400&fit=crop', caption: '市场行情' },
-      { url: 'https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?w=600&h=400&fit=crop', caption: '金融数据' },
-    ],
-    '健康': [
-      { url: 'https://images.unsplash.com/photo-1498837167922-ddd27525d352?w=600&h=400&fit=crop', caption: '健康饮食' },
-      { url: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600&h=400&fit=crop', caption: '运动健身' },
-    ],
-    '体育': [
-      { url: 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=600&h=400&fit=crop', caption: '赛场风采' },
-      { url: 'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=600&h=400&fit=crop', caption: '精彩瞬间' },
-    ],
-  }
-  const imgs = galleryImages[category]
-  if (!imgs) return null
-
+// 目录导航
+function TableOfContents({ content }) {
+  const [active, setActive] = useState('')
+  const headings = content.match(/<h2[^>]*>([^<]+)<\/h2>/g) || []
+  const items = headings.map((h, i) => {
+    const text = h.replace(/<[^>]+>/g, '')
+    const id = 'heading-' + i
+    return { id, text }
+  })
+  useEffect(() => {
+    if (!items.length) return
+    function onScroll() {
+      const els = items.map((_, i) => document.getElementById('heading-' + i)).filter(Boolean)
+      const scrollY = window.scrollY + 120
+      for (let i = els.length - 1; i >= 0; i--) {
+        if (els[i].offsetTop <= scrollY) { setActive(els[i].id); break }
+      }
+    }
+    window.addEventListener('scroll', onScroll)
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [items.length])
+  if (!items.length) return null
   return (
-    <div className="mt-6">
-      <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-        <span>🖼️</span> 相关图片
-      </h3>
-      <div className="grid grid-cols-3 gap-2">
-        {imgs.map((img, i) => (
-          <div key={i} className="relative overflow-hidden rounded-lg cursor-pointer group aspect-video"
-            onClick={() => setSelected(img)}>
-            <img src={img.url} alt={img.caption} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" loading="lazy" />
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition flex items-end">
-              <p className="text-white text-xs p-2 opacity-0 group-hover:opacity-100 transition">{img.caption}</p>
-            </div>
-          </div>
+    <div className="sticky top-20 bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">目录</p>
+      <nav className="space-y-1">
+        {items.map(item => (
+          <a key={item.id} href={'#' + item.id}
+            className={`block text-sm py-1 px-2 rounded-lg transition-colors ${active === item.id ? 'text-red-600 bg-red-50 font-medium' : 'text-gray-500 hover:text-red-500 hover:bg-gray-50'}`}>
+            {item.text}
+          </a>
         ))}
-      </div>
-      {/* 灯箱 */}
-      {selected && (
-        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={() => setSelected(null)}>
-          <div className="max-w-2xl w-full">
-            <img src={selected.url} alt={selected.caption} className="w-full rounded-xl shadow-2xl" />
-            <p className="text-white text-center mt-3 text-sm">{selected.caption}</p>
-          </div>
-        </div>
-      )}
+      </nav>
     </div>
   )
 }
@@ -100,6 +64,7 @@ function PostDetail() {
   const [post, setPost] = useState(null)
   const [related, setRelated] = useState([])
   const [loading, setLoading] = useState(true)
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     setLoading(true)
@@ -118,210 +83,219 @@ function PostDetail() {
 
   useEffect(() => {
     if (post) {
-      document.title = `${post.title} - 今日热点`
+      document.title = `${post.title} — 今日热点`
       window.scrollTo(0, 0)
     }
   }, [post])
 
+  function copyLink() {
+    navigator.clipboard.writeText(window.location.href)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
   if (loading) return (
-    <div className="flex justify-center items-center min-h-96">
-      <div className="animate-spin h-8 w-8 border-4 border-red-500 border-t-transparent rounded-full"></div>
+    <div className="flex justify-center items-center min-h-screen">
+      <div className="animate-spin h-10 w-10 border-4 border-red-500 border-t-transparent rounded-full" />
     </div>
   )
-
   if (!post) return (
-    <div className="max-w-3xl mx-auto px-4 py-20 text-center">
+    <div className="max-w-3xl mx-auto px-4 py-24 text-center">
       <p className="text-gray-400 text-lg mb-4">文章不存在</p>
       <Link to="/" className="text-red-600 hover:underline">← 返回首页</Link>
     </div>
   )
 
-  const catColor = CAT_COLORS[post.category] || 'bg-gray-100 text-gray-700'
-  const srcColor = SOURCE_COLORS[post.source] || 'bg-gray-100 text-gray-600'
   const gradient = CAT_GRADIENTS[post.category] || 'from-gray-700 to-gray-900'
+  const catColor = CAT_COLORS[post.category] || 'cx'
+
+  // 为正文中的 h2 添加 id（用于目录跳转）
+  const contentWithIds = post.content.replace(/<h2([^>]*)>/g, (m, attrs, offset) => {
+    const match = post.content.slice(0, offset).match(/<h2[^>]*>/g)
+    const id = 'heading-' + ((match && match.length) || 0)
+    return `<h2${attrs} id="${id}">`
+  })
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-6">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <>
+      <ReadingProgress />
+      <div className="max-w-7xl mx-auto px-4 py-6">
 
         {/* ===== 主内容 ===== */}
-        <article className="lg:col-span-2">
-          {/* 面包屑 */}
-          <div className="flex items-center gap-2 text-sm text-gray-400 mb-4">
-            <Link to="/" className="hover:text-red-600">首页</Link>
-            <span>/</span>
-            <Link to={`/category/${post.category}`} className="hover:text-red-600">{post.category}</Link>
-            <span>/</span>
-            <span className="text-gray-600 truncate max-w-xs">{post.title.slice(0, 25)}...</span>
-          </div>
+        <div className="flex gap-8">
 
-          {/* 封面大图 */}
-          <div className="relative rounded-xl overflow-hidden mb-6 shadow-md">
-            <div className="relative h-64 md:h-80">
-              {post.coverImage ? (
-                <img
-                  src={post.coverImage}
-                  alt={post.title}
-                  className="w-full h-full object-cover"
-                  onError={e => { e.target.style.display='none'; e.target.nextSibling.style.display='flex' }}
-                />
-              ) : null}
-              <div className={`${post.coverImage ? 'hidden' : 'flex'} w-full h-full bg-gradient-to-br ${gradient} items-center justify-center`}>
-                <span className="text-6xl opacity-30">
-                  {{'科技':'💻','财经':'📈','社会':'🏙️','娱乐':'🎬','体育':'⚽','健康':'🌿','生活':'🏠','国际':'🌍','热点':'🔥'}[post.category] || '📰'}
-                </span>
-              </div>
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
-              <div className="absolute bottom-0 left-0 right-0 p-5">
-                <div className="flex flex-wrap items-center gap-2 mb-2">
-                  <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${catColor}`}>{post.category}</span>
-                  <span className={`text-xs px-2.5 py-1 rounded-full ${srcColor}`}>{post.source}</span>
-                  {post.heat && <span className="text-xs bg-orange-500 text-white px-2.5 py-1 rounded-full font-semibold">🔥 {post.heat}</span>}
+          {/* 左侧：文章主体 */}
+          <article className="flex-1 min-w-0">
+
+            {/* 面包屑 */}
+            <div className="flex items-center gap-2 text-sm text-gray-400 mb-5">
+              <Link to="/" className="hover:text-red-500 transition">首页</Link>
+              <span>/</span>
+              <Link to={`/category/${post.category}`} className="hover:text-red-500 transition">{post.category}</Link>
+              <span>/</span>
+              <span className="text-gray-500 truncate max-w-xs">{post.title}</span>
+            </div>
+
+            {/* 封面大图 */}
+            <div className="relative rounded-2xl overflow-hidden mb-6 shadow-xl">
+              <div className="relative h-72 md:h-96">
+                {post.coverImage ? (
+                  <img src={post.coverImage} alt={post.title} className="w-full h-full object-cover"
+                    onError={e => { e.currentTarget.style.display = 'none' }} />
+                ) : null}
+                <div className="absolute inset-0 bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center">
+                  <span className="text-7xl opacity-20">{'💻📈🏙️🎬⚽🌿🏠🌍🔥'['科技财经社会娱乐体育健康生活国际热点'.indexOf(post.category) / 4] || '📰'}</span>
                 </div>
-                <h1 className="text-white font-bold text-xl md:text-2xl leading-tight">{post.title}</h1>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8">
+                  <div className="flex flex-wrap items-center gap-2 mb-3">
+                    <span className={`text-xs px-3 py-1 rounded-full font-semibold ${catColor}`}>{post.category}</span>
+                    {post.heat && <span className="text-xs bg-orange-500 text-white px-3 py-1 rounded-full font-semibold">🔥 {post.heat}</span>}
+                  </div>
+                  <h1 className="text-white font-bold text-2xl md:text-3xl leading-tight">{post.title}</h1>
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* 文章元信息 */}
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 mb-5 flex flex-wrap items-center gap-4 text-sm text-gray-500">
-            <span>📅 {post.date}</span>
-            {post.readTime && <span>📖 约{post.readTime}分钟阅读</span>}
-            {post.views && <span>👁 {(post.views/1000).toFixed(1)}k 浏览</span>}
-            {post.originalTitle && <span className="text-xs bg-gray-100 px-2 py-1 rounded">原话题：{post.originalTitle}</span>}
-          </div>
-
-          {/* 摘要 */}
-          <div className="bg-orange-50 border-l-4 border-orange-400 rounded-r-xl p-4 mb-5">
-            <p className="text-gray-700 text-sm leading-relaxed">{post.description}</p>
-          </div>
-
-          {/* 正文 */}
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 mb-5">
-            <div
-              className="prose prose-gray max-w-none
-                prose-headings:text-gray-900 prose-headings:font-bold
-                prose-h2:text-xl prose-h2:mt-6 prose-h2:mb-3 prose-h2:pb-2 prose-h2:border-b prose-h2:border-gray-100
-                prose-p:text-gray-700 prose-p:leading-relaxed prose-p:mb-4
-                prose-strong:text-gray-900"
-              dangerouslySetInnerHTML={{ __html: post.content }}
-            />
-          </div>
-
-          {/* 相关图片画廊 */}
-          <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 mb-5">
-            <ArticleGallery category={post.category} slug={post.slug} />
-          </div>
-
-          {/* 相关视频 */}
-          {post.relatedVideos && post.relatedVideos.length > 0 && (
-            <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 mb-5">
-              <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                <span className="text-red-500">▶</span> 相关视频
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {post.relatedVideos.map((v, i) => <VideoCard key={i} video={v} />)}
-              </div>
-            </div>
-          )}
-
-          {/* FAQ */}
-          {post.faq && post.faq.length > 0 && (
-            <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 mb-5">
-              <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <span className="text-blue-500">❓</span> 常见问题
-              </h2>
-              <div className="space-y-4">
-                {post.faq.map((item, i) => (
-                  <details key={i} className="group border border-gray-100 rounded-lg overflow-hidden">
-                    <summary className="flex items-center justify-between px-4 py-3 cursor-pointer bg-gray-50 hover:bg-gray-100 transition font-medium text-sm text-gray-800">
-                      {item.question}
-                      <svg className="w-4 h-4 text-gray-400 group-open:rotate-180 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </summary>
-                    <div className="px-4 py-3 text-sm text-gray-600 leading-relaxed border-t border-gray-100">
-                      {item.answer}
-                    </div>
-                  </details>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* 标签 */}
-          {post.tags && post.tags.length > 0 && (
-            <div className="flex flex-wrap gap-2 mb-5">
-              {post.tags.map(tag => (
-                <span key={tag} className="text-xs px-3 py-1.5 bg-gray-100 text-gray-600 rounded-full hover:bg-red-50 hover:text-red-600 transition cursor-default">
-                  #{tag}
+            {/* 元信息条 */}
+            <div className="flex items-center justify-between flex-wrap gap-3 mb-5 px-1">
+              <div className="flex items-center gap-4 text-sm text-gray-400">
+                <span className="flex items-center gap-1.5">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                  {post.date}
                 </span>
-              ))}
-            </div>
-          )}
-
-          {/* 分享区 */}
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex items-center justify-between">
-            <span className="text-sm text-gray-500">觉得有用？分享给朋友</span>
-            <div className="flex gap-2">
-              <button onClick={() => navigator.clipboard?.writeText(window.location.href).then(() => alert('链接已复制！'))}
-                className="px-4 py-1.5 bg-gray-100 text-gray-600 rounded-full text-xs hover:bg-gray-200 transition">
-                📋 复制链接
+                {post.readTime && <span className="flex items-center gap-1.5">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                  约{post.readTime}分钟阅读
+                </span>}
+                {post.views && <span className="flex items-center gap-1.5">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                  {post.views >= 1000 ? (post.views / 1000).toFixed(1) + 'k' : post.views} 阅读
+                </span>}
+              </div>
+              <button onClick={copyLink}
+                className="flex items-center gap-1.5 text-sm px-4 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-full transition">
+                {copied ? '✅ 已复制' : '📋 分享'}
               </button>
             </div>
-          </div>
-        </article>
 
-        {/* ===== 侧边栏 ===== */}
-        <aside className="space-y-5">
-          {/* 相关文章 */}
-          {related.length > 0 && (
-            <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-              <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
-                <h3 className="font-semibold text-gray-800 text-sm">📰 相关文章</h3>
+            {/* 摘要 */}
+            <div className="bg-gradient-to-r from-red-50 to-orange-50 border-l-4 border-red-400 rounded-r-xl p-5 mb-7">
+              <p className="text-gray-700 leading-relaxed text-base">{post.description}</p>
+            </div>
+
+            {/* 正文 */}
+            <div className="prose-custom mb-8">
+              <div
+                className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8"
+                dangerouslySetInnerHTML={{ __html: contentWithIds }}
+              />
+            </div>
+
+            {/* FAQ 折叠 */}
+            {post.faq && post.faq.length > 0 && (
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8 mb-8">
+                <h2 className="text-lg font-bold text-gray-900 mb-5 flex items-center gap-2">
+                  <span className="text-blue-500">❓</span> 常见问题
+                </h2>
+                <div className="space-y-3">
+                  {post.faq.map((item, i) => (
+                    <details key={i} className="group border border-gray-100 rounded-xl overflow-hidden">
+                      <summary className="flex items-center justify-between gap-3 px-5 py-4 cursor-pointer bg-gray-50 hover:bg-gray-100 transition font-medium text-gray-800 list-none">
+                        <span>{item.question}</span>
+                        <svg className="w-4 h-4 text-gray-400 group-open:rotate-180 transition-transform flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </summary>
+                      <div className="px-5 py-4 text-gray-600 leading-relaxed border-t border-gray-100 bg-white">
+                        {item.answer}
+                      </div>
+                    </details>
+                  ))}
+                </div>
               </div>
-              <div className="p-3 space-y-3">
-                {related.map(p => (
-                  <Link key={p.slug} to={`/posts/${p.slug}`} className="flex gap-3 group">
-                    <div className="w-20 h-14 flex-shrink-0 rounded-lg overflow-hidden">
-                      <CoverImage src={p.coverImage} category={p.category} alt={p.title} className="w-full h-full transition-transform duration-300 group-hover:scale-105" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-gray-700 group-hover:text-red-600 transition line-clamp-2 leading-snug font-medium">{p.title}</p>
-                      <p className="text-xs text-gray-400 mt-1">{p.date}</p>
-                    </div>
-                  </Link>
+            )}
+
+            {/* 标签 */}
+            {post.tags && post.tags.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-8">
+                {post.tags.map(tag => (
+                  <span key={tag} className="text-sm px-4 py-1.5 bg-gray-100 text-gray-500 rounded-full hover:bg-red-50 hover:text-red-500 transition cursor-default">
+                    #{tag}
+                  </span>
                 ))}
               </div>
-            </div>
-          )}
+            )}
 
-          {/* 分类导航 */}
-          <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
-              <h3 className="font-semibold text-gray-800 text-sm">📁 热门分类</h3>
+            {/* 导航 */}
+            <div className="flex gap-4">
+              <Link to="/" className="flex-1 text-center py-3 bg-white border border-gray-200 rounded-xl text-gray-600 hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition text-sm font-medium">
+                ← 返回首页
+              </Link>
+              <Link to={`/category/${post.category}`} className="flex-1 text-center py-3 bg-red-500 text-white rounded-xl hover:bg-red-600 transition text-sm font-medium">
+                更多{post.category} →
+              </Link>
             </div>
-            <div className="p-3 grid grid-cols-4 gap-2">
-              {Object.keys(CAT_COLORS).map(cat => (
-                <Link key={cat} to={`/category/${cat}`}
-                  className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-gray-50 transition group">
-                  <span className="text-xl">{{'科技':'💻','财经':'📈','社会':'🏙️','娱乐':'🎬','体育':'⚽','健康':'🌿','生活':'🏠','国际':'🌍','热点':'🔥'}[cat]}</span>
-                  <span className="text-xs text-gray-600 group-hover:text-red-600 transition">{cat}</span>
-                </Link>
-              ))}
-            </div>
-          </div>
+          </article>
 
-          {/* 数据来源说明 */}
-          <div className="bg-blue-50 rounded-xl p-4 border border-blue-100">
-            <h3 className="font-semibold text-blue-800 text-sm mb-2">📡 数据来源</h3>
-            <p className="text-xs text-blue-600 leading-relaxed">
-              本文内容基于{post.source}热搜话题智能改写生成，仅供参考。原始热度：{post.heat || '—'}
-            </p>
-          </div>
-        </aside>
+          {/* 右侧：目录+相关 */}
+          <aside className="w-64 flex-shrink-0 hidden xl:block">
+            <div className="sticky top-24 space-y-5">
+              {/* 目录 */}
+              <TableOfContents content={post.content} />
+
+              {/* 相关文章 */}
+              {related.length > 0 && (
+                <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                  <div className="px-4 py-3 bg-gray-50 border-b border-gray-100">
+                    <p className="font-semibold text-gray-800 text-sm">📰 相关推荐</p>
+                  </div>
+                  <div className="divide-y divide-gray-50">
+                    {related.map(p => (
+                      <Link key={p.slug} to={`/posts/${p.slug}`} className="block px-4 py-3 hover:bg-gray-50 transition group">
+                        <p className="text-sm text-gray-700 group-hover:text-red-600 line-clamp-2 leading-snug font-medium">{p.title}</p>
+                        <p className="text-xs text-gray-400 mt-1">{p.date}</p>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </aside>
+        </div>
       </div>
-    </div>
+
+      <style>{`
+        .prose-custom h2 {
+          font-size: 1.15rem;
+          font-weight: 700;
+          color: #111827;
+          margin: 2rem 0 0.875rem 0;
+          padding-bottom: 0.5rem;
+          border-bottom: 1px solid #f3f4f6;
+          scroll-margin-top: 100px;
+        }
+        .prose-custom p {
+          color: #374151;
+          line-height: 1.8;
+          margin-bottom: 1rem;
+          font-size: 0.95rem;
+        }
+        .prose-custom strong {
+          color: #111827;
+          font-weight: 600;
+        }
+        .prose-custom ul, .prose-custom ol {
+          margin: 1rem 0;
+          padding-left: 1.5rem;
+          color: #374151;
+        }
+        .prose-custom li {
+          margin-bottom: 0.5rem;
+          line-height: 1.7;
+        }
+      `}</style>
+    </>
   )
 }
 

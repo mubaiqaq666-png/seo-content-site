@@ -89,18 +89,25 @@ var server = http.createServer(function(req, res) {
     var body = ''
     req.on('data', function(chunk) { body += chunk })
     req.on('end', function() {
-      console.log('[API] 一键抓取生成请求')
+      var options = {}
+      try { options = JSON.parse(body || '{}') } catch(e) {}
+      var categories = options.categories || null
+      var limit = parseInt(options.limit) || 10
+      console.log('[API] 一键抓取生成请求, 分类:', categories || '全部', '数量:', limit)
       ;(async function() {
         try {
           // 1. 抓取话题
           console.log('[1/2] 抓取热门话题...')
           await runScript(path.join(ROOT, 'src/scripts/fetchHotTopics.js'))
 
-          // 2. 生成文章（dailyGenerate 已包含 Git 推送）
-          console.log('[2/2] 生成文章并推送...')
-          await runScript(path.join(ROOT, 'src/scripts/dailyGenerate.js'))
+          // 2. 生成文章
+          console.log('[2/2] 生成文章...')
+          var genScript = path.join(ROOT, 'src/scripts/dailyGenerate.js')
+          // 修改 dailyGenerate 传入分类参数（通过环境变量）
+          process.env.FETCH_CATS = categories ? categories.join(',') : ''
+          process.env.FETCH_LIMIT = String(limit)
+          await runScript(genScript)
 
-          // 返回结果
           var posts = JSON.parse(fs.readFileSync(path.join(ROOT, 'public/data/posts.json'), 'utf-8'))
           console.log('[OK] 完成，共 ' + posts.posts.length + ' 篇文章')
           sendJSON(res, { success: true, count: posts.posts.length })

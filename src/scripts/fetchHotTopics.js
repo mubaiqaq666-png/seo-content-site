@@ -611,8 +611,12 @@ async function fetchAllTopics() {
   return results
 }
 
-function generateArticlesFromTopics(topicsData, limit = 10) {
-  const allTopics = topicsData.flatMap(d => d.topics)
+function generateArticlesFromTopics(topicsData, limit = 10, categories = null) {
+  let allTopics = topicsData.flatMap(d => d.topics)
+  // 按分类筛选
+  if (categories && categories.length > 0) {
+    allTopics = allTopics.filter(t => categories.includes(detectCategory(t.title)))
+  }
   const selected = allTopics.slice(0, limit)
   return selected.map(topic => rewriteToArticle(topic))
 }
@@ -627,8 +631,12 @@ export {
 
 // 直接运行
 if (process.argv[1].includes('fetchHotTopics.js')) {
+  const categories = process.argv.includes('--cat')
+    ? process.argv[process.argv.indexOf('--cat') + 1]?.split(',') || null
+    : null
+  const limit = parseInt(process.argv.find(a => /^\d+$/.test(a)) || '10')
   const data = await fetchAllTopics()
-  const articles = generateArticlesFromTopics(data, 5)
-  console.log(`\n✅ 生成 ${articles.length} 篇文章预览:`)
+  const articles = generateArticlesFromTopics(data, limit, categories)
+  console.log(`\n✅ 生成 ${articles.length} 篇文章${categories ? ` (分类: ${categories.join(',')})` : ''}:`)
   articles.forEach(a => console.log(`  • ${a.title} [${a.category}]`))
 }
