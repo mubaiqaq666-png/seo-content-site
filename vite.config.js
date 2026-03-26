@@ -6,24 +6,18 @@ export default defineConfig({
   plugins: [react()],
   build: {
     outDir: 'dist',
-    // 使用 esbuild 压缩（内置，无需安装 terser）
+    sourcemap: false,
     minify: 'esbuild',
-    // 移除 console.log
     esbuildOptions: {
       drop: ['console', 'debugger'],
     },
-    // 代码分割
+    // 禁用代码分割，所有页面代码打入一个文件
     rollupOptions: {
       output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom', 'react-router-dom'],
-        },
-        entryFileNames: 'assets/[name]-[hash].js',
-        chunkFileNames: 'assets/[name]-[hash].js',
-        assetFileNames: 'assets/[name]-[hash].[ext]',
+        inlineDynamicImports: true,
       },
     },
-    chunkSizeWarningLimit: 500,
+    chunkSizeWarningLimit: 800,
     target: 'es2018',
   },
   resolve: {
