@@ -3,14 +3,20 @@ name: Deploy to Vercel
 on:
   push:
     branches: [main]
+  # 每天北京时间 8:00 和 20:00 自动抓取新内容并部署
+  schedule:
+    - cron: '0 0 * * *'   # 每天 00:00 UTC = 北京时间 08:00
+    - cron: '30 12 * * *'  # 每天 12:30 UTC = 北京时间 20:30
   workflow_dispatch:
 
 jobs:
-  deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -20,6 +26,10 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Fetch latest RSS articles
+        run: node src/scripts/fetchHotTopics.js 30
+        continue-on-error: true
 
       - name: Generate content
         run: npm run generate
@@ -34,3 +44,10 @@ jobs:
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      - name: Get deployment URL
+        if: always()
+        run: |
+          JOB_ID=$(gh api repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/jobs --jq '.jobs[0].id')
+          gh api repos/${{ github.repository }}/actions/jobs/${JOB_ID}/logs 2>/dev/null | \
+            grep -o 'https://[^ ]*\.vercel\.app' | head -1 >> $GITHUB_STEP_SUMMARY 2>/dev/null || true

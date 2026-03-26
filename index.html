@@ -2,9 +2,72 @@
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>SEO内容站</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+
+    <!-- 基础 SEO -->
+    <title>今日热点 - 实时热搜资讯平台</title>
+    <meta name="description" content="今日热点提供实时热搜资讯，覆盖科技、财经、社会、娱乐、体育、健康、生活、国际等热门话题，每日更新，让资讯触手可及。" />
+    <meta name="keywords" content="今日热点,热搜,资讯,新闻,科技,财经,社会,娱乐" />
+    <meta name="author" content="今日热点" />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://seo-content-site.vercel.app/" />
+
+    <!-- Open Graph -->
+    <meta property="og:site_name" content="今日热点" />
+    <meta property="og:title" content="今日热点 - 实时热搜资讯平台" />
+    <meta property="og:description" content="实时热搜资讯，覆盖科技、财经、社会、娱乐等热门话题，每日更新。" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://seo-content-site.vercel.app/" />
+    <meta property="og:image" content="https://seo-content-site.vercel.app/og-image.png" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="今日热点 - 实时热搜资讯平台" />
+    <meta name="twitter:description" content="实时热搜资讯，覆盖科技、财经、社会、娱乐等热门话题。" />
+
+    <!-- 移动端优化 -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="theme-color" content="#ef4444" />
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+    <!-- =========================================
+         统计分析（按需启用）
+         使用前请将占位符替换为真实 ID
+    ========================================= -->
+
+    <!-- 百度统计（国内使用，推荐）
+         申请地址: https://tongji.baidu.com/
+         替换下面的 hm.js 后面的 ? 符号后的代码 -->
+    <!--
+    <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?【在这里填入你的百度统计ID】";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+    </script>
+    -->
+
+    <!-- Google Analytics 4（海外使用）
+         申请地址: https://analytics.google.com/
+         替换下面的 G-XXXXXXXXXX 为你的 Measurement ID -->
+    <!--
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-XXXXXXXXXX');
+    </script>
+    -->
+
   </head>
   <body>
     <div id="root"></div>

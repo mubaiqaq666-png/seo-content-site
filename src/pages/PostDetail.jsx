@@ -2,6 +2,7 @@ import { useParams, Link } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { CoverImage, CAT_COLORS, CAT_GRADIENTS } from './Home'
 import AdComponent from '../components/AdComponent'
+import SEOMeta from '../components/SEOMeta'
 
 // 阅读进度条
 function ReadingProgress() {
@@ -107,6 +108,23 @@ function PostDetail() {
     </div>
   )
 
+  // JSON-LD 结构化数据
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'NewsArticle',
+    headline: post.title,
+    description: post.description,
+    image: post.coverImage,
+    datePublished: post.date,
+    author: { '@type': 'Organization', name: '今日热点' },
+    publisher: {
+      '@type': 'Organization',
+      name: '今日热点',
+      logo: { '@type': 'ImageObject', url: 'https://seo-content-site.vercel.app/favicon.svg' },
+    },
+    mainEntityOfPage: { '@type': 'WebPage', '@id': `https://seo-content-site.vercel.app/posts/${post.slug}` },
+  }
+
   const gradient = CAT_GRADIENTS[post.category] || 'from-gray-700 to-gray-900'
   const catColor = CAT_COLORS[post.category] || 'cx'
 
@@ -119,6 +137,20 @@ function PostDetail() {
 
   return (
     <>
+      {/* SEO 结构化数据 */}
+      <SEOMeta
+        title={post.title}
+        description={post.description}
+        keywords={post.keywords}
+        article={true}
+        publishTime={post.date}
+        ogImage={post.coverImage}
+      />
+      {/* JSON-LD */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <ReadingProgress />
       <div className="max-w-7xl mx-auto px-4 py-6">
 

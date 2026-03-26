@@ -1,60 +1,67 @@
 import { useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 
-function SEOMeta({ 
-  title, 
-  description, 
-  keywords = [], 
-  ogImage = '/og-image.png',
-  canonical 
+const SITE_NAME = '今日热点'
+const BASE_URL = 'https://seo-content-site.vercel.app'
+
+function SEOMeta({
+  title,
+  description,
+  keywords = [],
+  article = false,
+  publishTime,
+  author,
+  ogImage,
 }) {
   const location = useLocation()
-  const baseUrl = 'https://seo-content-site.vercel.app' // 部署时替换为实际域名
-  
-  const fullTitle = title ? `${title} | SEO内容站` : 'SEO内容站 - 专业的SEO优化指南'
-  const fullDescription = description || '提供高质量的SEO优化内容和教程，帮助您提升网站排名'
-  const fullUrl = `${baseUrl}${location.pathname}`
+  const url = `${BASE_URL}${location.pathname}`
 
   useEffect(() => {
+    const fullTitle = title ? `${title} | ${SITE_NAME}` : `${SITE_NAME} - 实时热搜资讯平台`
+    const metaDesc = description || '今日热点提供实时热搜资讯，覆盖科技、财经、社会、娱乐、体育等热门话题，每日更新。'
+    const metaKeywords = keywords.length ? keywords.join(', ') : '今日热点,热搜,资讯,新闻'
+
     // 更新 title
     document.title = fullTitle
-    
-    // 更新或创建 meta 标签
-    const updateMeta = (name, content, property = false) => {
-      const selector = property ? `meta[property="${name}"]` : `meta[name="${name}"]`
-      let meta = document.querySelector(selector)
-      if (!meta) {
-        meta = document.createElement('meta')
-        if (property) {
-          meta.setAttribute('property', name)
-        } else {
-          meta.setAttribute('name', name)
-        }
-        document.head.appendChild(meta)
+
+    const setMeta = (name, content, isProperty = false) => {
+      const sel = isProperty ? `meta[property="${name}"]` : `meta[name="${name}"]`
+      let el = document.querySelector(sel)
+      if (!el) {
+        el = document.createElement('meta')
+        if (isProperty) el.setAttribute('property', name)
+        else el.setAttribute('name', name)
+        document.head.appendChild(el)
       }
-      meta.setAttribute('content', content)
+      el.setAttribute('content', content)
     }
 
-    updateMeta('description', fullDescription)
-    updateMeta('keywords', keywords.join(', '))
-    updateMeta('og:title', fullTitle, true)
-    updateMeta('og:description', fullDescription, true)
-    updateMeta('og:url', fullUrl, true)
-    updateMeta('og:type', 'website', true)
-    updateMeta('twitter:card', 'summary_large_image')
-    updateMeta('twitter:title', fullTitle)
-    updateMeta('twitter:description', fullDescription)
-
-    // 更新 canonical
-    let canonicalLink = document.querySelector('link[rel="canonical"]')
-    if (!canonicalLink) {
-      canonicalLink = document.createElement('link')
-      canonicalLink.setAttribute('rel', 'canonical')
-      document.head.appendChild(canonicalLink)
+    setMeta('description', metaDesc)
+    setMeta('keywords', metaKeywords)
+    setMeta('og:title', fullTitle, true)
+    setMeta('og:description', metaDesc, true)
+    setMeta('og:url', url, true)
+    setMeta('og:type', article ? 'article' : 'website', true)
+    if (publishTime) setMeta('article:published_time', publishTime, true)
+    if (author) setMeta('article:author', author, true)
+    setMeta('twitter:card', 'summary_large_image')
+    setMeta('twitter:title', fullTitle)
+    setMeta('twitter:description', metaDesc)
+    if (ogImage) {
+      setMeta('og:image', ogImage, true)
+      setMeta('twitter:image', ogImage)
     }
-    canonicalLink.setAttribute('href', canonical || fullUrl)
 
-  }, [title, description, keywords, canonical, fullTitle, fullDescription, fullUrl])
+    // Canonical
+    let canonical = document.querySelector('link[rel="canonical"]')
+    if (!canonical) {
+      canonical = document.createElement('link')
+      canonical.setAttribute('rel', 'canonical')
+      document.head.appendChild(canonical)
+    }
+    canonical.setAttribute('href', url)
+
+  }, [title, description, keywords, article, publishTime, author, ogImage, url])
 
   return null
 }
