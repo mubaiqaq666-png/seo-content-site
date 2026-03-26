@@ -1,3 +1,3 @@
 User-agent: *
 Allow: /
-Sitemap: https://your-domain.com/sitemap.xml
+Sitemap: https://seo-content-site.vercel.app/sitemap.xml
