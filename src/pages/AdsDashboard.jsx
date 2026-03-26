@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import Layout from '../components/Layout'
 
 const PLATFORMS = {
@@ -15,7 +16,115 @@ const SLOTS = {
   sidebar: '侧边栏 (300x250)',
 }
 
-export default function AdsDashboard() {
+// 简单的密码验证（生产环境应使用更强的认证）
+const ADMIN_PASSWORD = 'admin@2026'
+
+function LoginPage({ onLogin }) {
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+
+  const handleLogin = () => {
+    if (password === ADMIN_PASSWORD) {
+      localStorage.setItem('adsAdminToken', 'authenticated')
+      onLogin()
+    } else {
+      setError('密码错误，请重试')
+      setPassword('')
+    }
+  }
+
+  return (
+    <Layout>
+      <div style={{
+        maxWidth: 400,
+        margin: '60px auto',
+        background: 'var(--card)',
+        border: '1px solid var(--border)',
+        borderRadius: 8,
+        padding: 32,
+        textAlign: 'center'
+      }}>
+        <h1 style={{ fontSize: 24, marginBottom: 8 }}>🔐 广告管理后台</h1>
+        <p style={{ color: 'var(--muted)', marginBottom: 24, fontSize: 13 }}>
+          请输入管理员密码以访问广告配置
+        </p>
+
+        <div style={{ marginBottom: 16 }}>
+          <input
+            type="password"
+            placeholder="输入管理员密码"
+            value={password}
+            onChange={e => {
+              setPassword(e.target.value)
+              setError('')
+            }}
+            onKeyPress={e => e.key === 'Enter' && handleLogin()}
+            style={{
+              width: '100%',
+              background: 'var(--bg)',
+              border: `1px solid ${error ? 'var(--danger)' : 'var(--border)'}`,
+              borderRadius: 6,
+              padding: '12px 16px',
+              color: 'var(--text)',
+              fontSize: 14,
+              outline: 'none',
+              boxSizing: 'border-box'
+            }}
+          />
+        </div>
+
+        {error && (
+          <p style={{ color: '#ff4466', fontSize: 12, marginBottom: 16 }}>
+            ❌ {error}
+          </p>
+        )}
+
+        <button
+          onClick={handleLogin}
+          style={{
+            width: '100%',
+            background: 'var(--accent)',
+            color: '#000',
+            border: 'none',
+            borderRadius: 6,
+            padding: '12px 24px',
+            fontSize: 14,
+            fontWeight: 600,
+            cursor: 'pointer',
+            transition: 'opacity 0.2s'
+          }}
+          onMouseEnter={e => e.target.style.opacity = '0.8'}
+          onMouseLeave={e => e.target.style.opacity = '1'}
+        >
+          🔓 登录
+        </button>
+
+        <div style={{
+          marginTop: 24,
+          padding: 16,
+          background: 'rgba(0,212,255,0.05)',
+          border: '1px solid rgba(0,212,255,0.2)',
+          borderRadius: 6,
+          fontSize: 11,
+          color: 'var(--muted)',
+          lineHeight: 1.6
+        }}>
+          <p style={{ margin: 0, marginBottom: 8 }}>
+            <strong>💡 提示：</strong>
+          </p>
+          <p style={{ margin: 0, marginBottom: 4 }}>
+            默认密码：<code style={{ background: 'var(--bg)', padding: '2px 6px', borderRadius: 3 }}>admin@2026</code>
+          </p>
+          <p style={{ margin: 0 }}>
+            生产环境建议修改密码或使用更强的认证方式
+          </p>
+        </div>
+      </div>
+    </Layout>
+  )
+}
+
+function DashboardContent() {
   const [config, setConfig] = useState({
     enabled: true,
     baidu: { enabled: false, slotId: '', tongjiId: '' },
@@ -418,5 +527,59 @@ export default function AdsDashboard() {
         </div>
       </div>
     </Layout>
+  )
+}
+
+export default function AdsDashboard() {
+  const [authenticated, setAuthenticated] = useState(false)
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    // 检查是否已登录
+    const token = localStorage.getItem('adsAdminToken')
+    if (token === 'authenticated') {
+      setAuthenticated(true)
+    }
+  }, [])
+
+  const handleLogout = () => {
+    localStorage.removeItem('adsAdminToken')
+    setAuthenticated(false)
+    navigate('/')
+  }
+
+  if (!authenticated) {
+    return <LoginPage onLogin={() => setAuthenticated(true)} />
+  }
+
+  return (
+    <>
+      <DashboardContent />
+      <div style={{
+        position: 'fixed',
+        bottom: 20,
+        right: 20,
+        background: 'var(--card)',
+        border: '1px solid var(--border)',
+        borderRadius: 6,
+        padding: '8px 12px',
+        fontSize: 12,
+        color: 'var(--muted)'
+      }}>
+        <button
+          onClick={handleLogout}
+          style={{
+            background: 'transparent',
+            border: 'none',
+            color: 'var(--accent)',
+            cursor: 'pointer',
+            fontSize: 12,
+            textDecoration: 'underline'
+          }}
+        >
+          🔓 退出登录
+        </button>
+      </div>
+    </>
   )
 }
