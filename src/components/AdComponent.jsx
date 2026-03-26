@@ -1,185 +1,210 @@
-import adsConfig from '../data/ads.config.js'
-import { useState, useEffect, useRef } from 'react'
+import { useEffect, useState } from 'react'
 
-// =============================================
-// 统一的广告组件
-// 支持：百度广告联盟 / 腾讯广告 / Google AdSense
-// 使用懒加载，优化页面性能
-// =============================================
-
-function BaiduAd({ slotId, style = {}, className = '' }) {
-  const ref = useRef(null)
+export default function AdComponent({ position = 'middle' }) {
+  const [config, setConfig] = useState(null)
+  const [adType, setAdType] = useState(null)
   const [loaded, setLoaded] = useState(false)
 
   useEffect(() => {
-    if (!adsConfig.china.baidu.enabled || !slotId || slotId === 'XXXXXXXX') return
-
-    let timer
-    if (adsConfig.loadStrategy === 'lazy') {
-      const observer = new IntersectionObserver(
-        entries => {
-          if (entries[0].isIntersecting) {
-            inject()
-            observer.disconnect()
-          }
-        },
-        { rootMargin: '200px' }
-      )
-      if (ref.current) observer.observe(ref.current)
-      return () => observer.disconnect()
-    } else {
-      inject()
-    }
-
-    function inject() {
-      // 设置超时
-      timer = setTimeout(() => setLoaded(true), adsConfig.loadTimeout)
+    // 从 localStorage 读取配置
+    const stored = localStorage.getItem('adsConfig')
+    if (stored) {
       try {
-        window._hmt = window._hmt || []
-        // 百度广告代码示例（实际需替换为百度联盟提供的代码）
-        const s = document.createElement('script')
-        s.src = `https://dup.mk.lxdns.com/media/?s=1&k=${slotId}&t=${Date.now()}`
-        s.onload = () => { clearTimeout(timer); setLoaded(true) }
-        s.onerror = () => { clearTimeout(timer); setLoaded(true) }
-        document.head.appendChild(s)
-      } catch {
-        clearTimeout(timer)
-        setLoaded(true)
-      }
-    }
-
-    return () => clearTimeout(timer)
-  }, [slotId])
-
-  return (
-    <div ref={ref} className={`my-6 flex justify-center ${className}`}>
-      {adsConfig.china.baidu.enabled && slotId && slotId !== 'XXXXXXXX' ? (
-        // 真实百度广告位
-        <div className="w-full max-w-[800px] min-h-[100px] bg-gray-50 rounded-lg border border-gray-200 flex items-center justify-center relative overflow-hidden">
-          {!loaded && (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="animate-pulse text-gray-300 text-sm">广告加载中...</div>
-            </div>
-          )}
-          {/* 百度广告实际渲染容器 */}
-          <div id={`baidu-ad-${slotId}`} style={{ minHeight: 90, width: '100%', ...style }} />
-        </div>
-      ) : (
-        // 占位广告（未配置时显示）
-        <div className="w-full max-w-[800px] min-h-[100px] bg-gray-100 rounded-lg border border-dashed border-gray-300 flex flex-col items-center justify-center">
-          <div className="text-gray-300 text-xs font-medium mb-1">广告位</div>
-          <div className="text-gray-300 text-xs">百度广告联盟 · {style.width || '728×90'}</div>
-        </div>
-      )}
-    </div>
-  )
-}
-
-function TencentAd({ appId, posId, style = {}, className = '' }) {
-  const [loaded, setLoaded] = useState(false)
-
-  useEffect(() => {
-    if (!adsConfig.china.tencent.enabled || !posId || posId === 'XXXXXXXX') return
-    // 腾讯广告 SDK 懒加载
-    if (adsConfig.loadStrategy === 'lazy') {
-      const observer = new IntersectionObserver(
-        entries => {
-          if (entries[0].isIntersecting) {
-            loadScript()
-            observer.disconnect()
+        const cfg = JSON.parse(stored)
+        setConfig(cfg)
+        
+        // 根据用户地区选择广告源
+        if (cfg.enabled) {
+          const isChina = detectChina()
+          if (isChina) {
+            // 国内优先级：百度 > 腾讯 > 穿山甲
+            if (cfg.baidu?.enabled && cfg.baidu?.slotId) setAdType('baidu')
+            else if (cfg.tencent?.enabled && cfg.tencent?.appId) setAdType('tencent')
+            else if (cfg.bytedance?.enabled && cfg.bytedance?.appId) setAdType('bytedance')
+          } else {
+            // 海外优先级：Google AdSense
+            if (cfg.google?.enabled && cfg.google?.publisherId) setAdType('google')
+            else if (cfg.baidu?.enabled && cfg.baidu?.slotId) setAdType('baidu')
           }
-        },
-        { rootMargin: '200px' }
-      )
-      // 注意：实际使用时需要在 DOM 中有 ref
+        }
+      } catch (e) {}
     }
-  }, [posId])
+
+    // 监听配置更新事件
+    const handleUpdate = (e) => {
+      setConfig(e.detail)
+      setLoaded(false)
+    }
+    window.addEventListener('adsConfigUpdated', handleUpdate)
+    return () => window.removeEventListener('adsConfigUpdated', handleUpdate)
+  }, [])
+
+  // 检测是否在中国
+  function detectChina() {
+    try {
+      // 简单检测：根据时区或其他方式
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
+      return tz.includes('Shanghai') || tz.includes('Beijing') || tz.includes('Hong_Kong')
+    } catch {
+      return false
+    }
+  }
+
+  // 加载百度广告
+  function loadBaiduAd() {
+    if (!config?.baidu?.slotId) return
+    
+    const script = document.createElement('script')
+    script.src = 'https://cpro.baidustatic.com/cpro/ui/c.js'
+    script.async = true
+    script.onload = () => {
+      if (window.BAIDU_CPM_PUSH) {
+        window.BAIDU_CPM_PUSH(function() {
+          window._cpro = window._cpro || []
+          window._cpro.push({
+            id: config.baidu.slotId,
+            tn: 'baiduCustNativeAd'
+          })
+        })
+      }
+      setLoaded(true)
+    }
+    script.onerror = () => setLoaded(true)
+    document.body.appendChild(script)
+  }
+
+  // 加载腾讯广告
+  function loadTencentAd() {
+    if (!config?.tencent?.appId) return
+    
+    const script = document.createElement('script')
+    script.src = 'https://e.qq.com/ads/ad.js'
+    script.async = true
+    script.onload = () => {
+      if (window.tencent_ad) {
+        window.tencent_ad.show({
+          appId: config.tencent.appId,
+          posId: config.tencent.posId
+        })
+      }
+      setLoaded(true)
+    }
+    script.onerror = () => setLoaded(true)
+    document.body.appendChild(script)
+  }
+
+  // 加载穿山甲广告
+  function loadBytedanceAd() {
+    if (!config?.bytedance?.appId) return
+    
+    const script = document.createElement('script')
+    script.src = 'https://ad.oceanengine.com/union/openapi/ad.js'
+    script.async = true
+    script.onload = () => {
+      if (window.pangle) {
+        window.pangle.show({
+          appId: config.bytedance.appId,
+          slotId: config.bytedance.slotId
+        })
+      }
+      setLoaded(true)
+    }
+    script.onerror = () => setLoaded(true)
+    document.body.appendChild(script)
+  }
+
+  // 加载 Google AdSense
+  function loadGoogleAd() {
+    if (!config?.google?.publisherId) return
+    
+    const script = document.createElement('script')
+    script.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js'
+    script.async = true
+    script.crossOrigin = 'anonymous'
+    script.onload = () => {
+      if (window.adsbygoogle) {
+        window.adsbygoogle.push({})
+      }
+      setLoaded(true)
+    }
+    script.onerror = () => setLoaded(true)
+    document.body.appendChild(script)
+  }
+
+  // 根据类型加载广告
+  useEffect(() => {
+    if (!adType || loaded) return
+    
+    const timeout = setTimeout(() => {
+      switch (adType) {
+        case 'baidu':
+          loadBaiduAd()
+          break
+        case 'tencent':
+          loadTencentAd()
+          break
+        case 'bytedance':
+          loadBytedanceAd()
+          break
+        case 'google':
+          loadGoogleAd()
+          break
+        default:
+          setLoaded(true)
+      }
+    }, 100)
+    
+    return () => clearTimeout(timeout)
+  }, [adType, loaded])
+
+  if (!config?.enabled || !adType) {
+    return null
+  }
+
+  // 广告容器
+  const containerStyle = {
+    margin: '16px 0',
+    padding: '8px',
+    background: 'rgba(0,0,0,0.02)',
+    borderRadius: '4px',
+    minHeight: '100px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    color: 'var(--muted)',
+    fontSize: '12px'
+  }
 
   return (
-    <div className={`my-6 flex justify-center ${className}`}>
-      {adsConfig.china.tencent.enabled && posId && posId !== 'XXXXXXXX' ? (
-        <div className="w-full max-w-[800px] min-h-[100px] bg-gray-50 rounded-lg border border-gray-200 flex items-center justify-center">
-          <div className="text-gray-400 text-xs">腾讯广告 · {posId}</div>
-        </div>
-      ) : (
-        <div className="w-full max-w-[800px] min-h-[100px] bg-gray-100 rounded-lg border border-dashed border-gray-300 flex flex-col items-center justify-center">
-          <div className="text-gray-300 text-xs font-medium mb-1">广告位</div>
-          <div className="text-gray-300 text-xs">腾讯广告联盟</div>
+    <div style={containerStyle}>
+      {adType === 'baidu' && (
+        <div id={`baidu-ad-${position}`} style={{ width: '100%' }}>
+          {!loaded && <span>加载百度广告中...</span>}
         </div>
       )}
-    </div>
-  )
-}
-
-function GoogleAd({ publisherId, slot, style = {}, className = '' }) {
-  useEffect(() => {
-    if (!adsConfig.google.enabled || !publisherId || publisherId === 'ca-pub-XXXXXXXXXX') return
-    try {
-      (window.adsbygoogle = window.adsbygoogle || []).push({})
-    } catch {}
-  }, [publisherId, slot])
-
-  return (
-    <div className={`my-6 flex justify-center ${className}`}>
-      {adsConfig.google.enabled && publisherId && publisherId !== 'ca-pub-XXXXXXXXXX' ? (
-        <ins
+      
+      {adType === 'tencent' && (
+        <div id={`tencent-ad-${position}`} style={{ width: '100%' }}>
+          {!loaded && <span>加载腾讯广告中...</span>}
+        </div>
+      )}
+      
+      {adType === 'bytedance' && (
+        <div id={`bytedance-ad-${position}`} style={{ width: '100%' }}>
+          {!loaded && <span>加载穿山甲广告中...</span>}
+        </div>
+      )}
+      
+      {adType === 'google' && (
+        <ins 
           className="adsbygoogle"
-          style={{ display: 'block', width: '100%', maxWidth: 800, minHeight: 90, ...style }}
-          data-ad-client={publisherId}
-          data-ad-slot={slot}
+          style={{ display: 'block' }}
+          data-ad-client={config.google.publisherId}
+          data-ad-slot={position === 'top' ? '1234567890' : '0987654321'}
           data-ad-format="auto"
           data-full-width-responsive="true"
         />
-      ) : (
-        <div className="w-full max-w-[800px] min-h-[100px] bg-gray-100 rounded-lg border border-dashed border-gray-300 flex flex-col items-center justify-center">
-          <div className="text-gray-300 text-xs font-medium mb-1">广告位</div>
-          <div className="text-gray-300 text-xs">Google AdSense</div>
-        </div>
       )}
     </div>
   )
 }
-
-// 纯占位广告（调试用）
-function PlaceholderAd({ position, description }) {
-  return (
-    <div className="my-6 flex justify-center">
-      <div className="w-full max-w-[800px] min-h-[100px] bg-gray-50 rounded-lg border border-dashed border-gray-300 flex flex-col items-center justify-center">
-        <div className="text-gray-400 text-xs font-medium mb-1">📢 广告位</div>
-        <div className="text-gray-400 text-xs">{description || position}</div>
-      </div>
-    </div>
-  )
-}
-
-// =============================================
-// 主出口：根据配置渲染对应广告
-// =============================================
-function AdComponent({ position = 'middle' }) {
-  if (!adsConfig.enabled) return null
-
-  const slot = adsConfig.slots?.[position]
-
-  if (adsConfig.type === 'baidu' || adsConfig.type === 'baidu_zt') {
-    return <BaiduAd slotId={adsConfig.china.baidu.slotId} />
-  }
-
-  if (adsConfig.type === 'tencent') {
-    return <TencentAd
-      appId={adsConfig.china.tencent.appId}
-      posId={adsConfig.china.tencent.posId}
-    />
-  }
-
-  if (adsConfig.type === 'adsense' && adsConfig.google.enabled) {
-    return <GoogleAd
-      publisherId={adsConfig.google.publisherId}
-      slot={adsConfig.ads?.[position]?.slot}
-    />
-  }
-
-  // 默认占位
-  return <PlaceholderAd position={position} description={slot?.name} />
-}
-
-export default AdComponent

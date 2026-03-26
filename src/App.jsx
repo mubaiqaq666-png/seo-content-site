@@ -4,6 +4,7 @@ import Posts from './pages/Posts'
 import PostDetail from './pages/PostDetail'
 import Category from './pages/Category'
 import About from './pages/About'
+import AdsDashboard from './pages/AdsDashboard'
 import './index.css'
 
 export default function App() {
@@ -15,6 +16,7 @@ export default function App() {
         <Route path="/posts/:slug" element={<PostDetail />} />
         <Route path="/category/:category" element={<Category />} />
         <Route path="/about" element={<About />} />
+        <Route path="/admin/ads" element={<AdsDashboard />} />
         <Route path="*" element={<Home />} />
       </Routes>
     </BrowserRouter>
