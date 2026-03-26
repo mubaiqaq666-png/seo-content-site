@@ -1,8 +1,9 @@
 import { useParams, Link } from 'react-router-dom'
 import { useState, useEffect } from 'react'
-import { CoverImage, CAT_COLORS, CAT_GRADIENTS } from './Home'
 import AdComponent from '../components/AdComponent'
 import SEOMeta from '../components/SEOMeta'
+
+const CI = { '科技':'💻','财经':'📈','社会':'🏙️','娱乐':'🎬','体育':'⚽','健康':'🌿','生活':'🏠','国际':'🌍','热点':'🔥' }
 
 // 阅读进度条
 function ReadingProgress() {
@@ -10,58 +11,95 @@ function ReadingProgress() {
   useEffect(() => {
     function onScroll() {
       const el = document.documentElement
-      const scrollTop = el.scrollTop || document.body.scrollTop
-      const scrollHeight = el.scrollHeight - el.clientHeight
-      setProgress(scrollHeight > 0 ? Math.round((scrollTop / scrollHeight) * 100) : 0)
+      const top = el.scrollTop || document.body.scrollTop
+      const height = el.scrollHeight - el.clientHeight
+      setProgress(height > 0 ? Math.round((top / height) * 100) : 0)
     }
     window.addEventListener('scroll', onScroll)
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
   return (
-    <div className="fixed top-0 left-0 right-0 z-50 h-1 bg-gray-100">
-      <div className="h-full bg-gradient-to-r from-red-500 to-orange-400 transition-all duration-100" style={{ width: progress + '%' }} />
-    </div>
+    <div style={{ position:'fixed', top:0, left:0, height:3, zIndex:9999, transition:'width 0.1s', width:progress+'%', background:'linear-gradient(90deg,var(--cyan),var(--purple),var(--red))', boxShadow:'0 0 10px var(--cyan)' }} />
   )
 }
 
-// 目录导航
-function TableOfContents({ content }) {
+// 目录
+function TOC({ content }) {
   const [active, setActive] = useState('')
-  const headings = content.match(/<h2[^>]*>([^<]+)<\/h2>/g) || []
-  const items = headings.map((h, i) => {
-    const text = h.replace(/<[^>]+>/g, '')
-    const id = 'heading-' + i
-    return { id, text }
-  })
+  const headings = (content||'').match(/<h2[^>]*>([^<]+)<\/h2>/g) || []
+  const items = headings.map((h,i) => ({ id:'heading-'+i, text:h.replace(/<[^>]+>/g,'') }))
+
   useEffect(() => {
     if (!items.length) return
-    function onScroll() {
-      const els = items.map((_, i) => document.getElementById('heading-' + i)).filter(Boolean)
-      const scrollY = window.scrollY + 120
-      for (let i = els.length - 1; i >= 0; i--) {
-        if (els[i].offsetTop <= scrollY) { setActive(els[i].id); break }
+    const fn = () => {
+      const scrollY = window.scrollY + 130
+      for (let i = items.length-1; i >= 0; i--) {
+        const el = document.getElementById(items[i].id)
+        if (el && el.offsetTop <= scrollY) { setActive(items[i].id); break }
       }
     }
-    window.addEventListener('scroll', onScroll)
-    return () => window.removeEventListener('scroll', onScroll)
+    window.addEventListener('scroll', fn)
+    return () => window.removeEventListener('scroll', fn)
   }, [items.length])
+
   if (!items.length) return null
   return (
-    <div className="sticky top-20 bg-white rounded-xl border border-gray-100 shadow-sm p-4">
-      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">目录</p>
-      <nav className="space-y-1">
-        {items.map(item => (
-          <a key={item.id} href={'#' + item.id}
-            className={`block text-sm py-1 px-2 rounded-lg transition-colors ${active === item.id ? 'text-red-600 bg-red-50 font-medium' : 'text-gray-500 hover:text-red-500 hover:bg-gray-50'}`}>
-            {item.text}
-          </a>
-        ))}
+    <div style={{ position:'sticky', top:'88px', background:'rgba(8,8,24,0.9)', border:'1px solid var(--border)', borderRadius:'12px', padding:'16px', backdropFilter:'blur(12px)' }}>
+      <div style={{ fontSize:'11px', fontWeight:700, color:'var(--text-muted)', letterSpacing:'1px', textTransform:'uppercase', marginBottom:'10px' }}>目录</div>
+      <nav>
+        {items.map(item => {
+          const isActive = active === item.id
+          return (
+            <a key={item.id} href={'#'+item.id} style={{
+              display:'block', fontSize:'13px', padding:'6px 10px', borderRadius:'8px', marginBottom:'4px',
+              textDecoration:'none', transition:'all 0.2s',
+              background: isActive ? 'rgba(0,212,255,0.1)' : 'transparent',
+              color: isActive ? 'var(--cyan)' : 'var(--text-secondary)',
+              borderLeft: isActive ? '2px solid var(--cyan)' : '2px solid transparent',
+            }}>
+              {item.text}
+            </a>
+          )
+        })}
       </nav>
     </div>
   )
 }
 
-function PostDetail() {
+function CoverImg({ src, alt, category }) {
+  const [ok, setOk] = useState(false)
+  const [err, setErr] = useState(false)
+  const gradient = {
+    '科技':'linear-gradient(135deg,#0a1628,#1a3a5c)',
+    '财经':'linear-gradient(135deg,#1a1a08,#3a3a10)',
+    '社会':'linear-gradient(135deg,#0a0a1a,#1a1a3a)',
+    '娱乐':'linear-gradient(135deg,#1a0a20,#3a1050)',
+    '体育':'linear-gradient(135deg,#0a1a0a,#1a3a1a)',
+    '健康':'linear-gradient(135deg,#0a1a18,#1a3a30)',
+    '生活':'linear-gradient(135deg,#1a1008,#3a2010)',
+    '国际':'linear-gradient(135deg,#08081a,#10103a)',
+    '热点':'linear-gradient(135deg,#1a0808,#3a1010)',
+  }[category] || 'linear-gradient(135deg,#0a0a1a,#1a1a3a)'
+
+  if (err || !src) {
+    return (
+      <div style={{ width:'100%', height:'100%', background:gradient, display:'flex', alignItems:'center', justifyContent:'center', borderRadius:'inherit' }}>
+        <span style={{ fontSize:'4rem', opacity:0.15 }}>{CI[category]||'📰'}</span>
+      </div>
+    )
+  }
+  return (
+    <>
+      <div style={{ position:'absolute', inset:0, background:gradient, opacity: ok ? 0 : 1, transition:'opacity 0.4s', borderRadius:'inherit' }} />
+      <img src={src} alt={alt}
+        style={{ width:'100%', height:'100%', objectFit:'cover', opacity: ok ? 1 : 0, transition:'opacity 0.4s', borderRadius:'inherit' }}
+        onLoad={() => setOk(true)} onError={() => setErr(true)}
+      />
+    </>
+  )
+}
+
+export default function PostDetail() {
   const { slug } = useParams()
   const [post, setPost] = useState(null)
   const [related, setRelated] = useState([])
@@ -85,7 +123,7 @@ function PostDetail() {
 
   useEffect(() => {
     if (post) {
-      document.title = `${post.title} — 今日热点`
+      document.title = `${post.title} | 今日热点`
       window.scrollTo(0, 0)
     }
   }, [post])
@@ -97,47 +135,27 @@ function PostDetail() {
   }
 
   if (loading) return (
-    <div className="flex justify-center items-center min-h-screen">
-      <div className="animate-spin h-10 w-10 border-4 border-red-500 border-t-transparent rounded-full" />
+    <div style="display:flex;align-items:center;justify-content:center;min-height:60vh">
+      <div className="cyber-spinner" />
     </div>
   )
+
   if (!post) return (
-    <div className="max-w-3xl mx-auto px-4 py-24 text-center">
-      <p className="text-gray-400 text-lg mb-4">文章不存在</p>
-      <Link to="/" className="text-red-600 hover:underline">← 返回首页</Link>
+    <div style="max-width:800px;margin:0 auto;padding:80px 20px;text-align:center">
+      <div style="font-size:4rem;margin-bottom:16px;opacity:0.2">🔍</div>
+      <p style="color:var(--text-muted);margin-bottom:16px;font-size:16px">文章不存在或已被删除</p>
+      <Link to="/" style="color:var(--cyan);text-decoration:none;font-size:14px">← 返回首页</Link>
     </div>
   )
 
-  // JSON-LD 结构化数据
-  const jsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'NewsArticle',
-    headline: post.title,
-    description: post.description,
-    image: post.coverImage,
-    datePublished: post.date,
-    author: { '@type': 'Organization', name: '今日热点' },
-    publisher: {
-      '@type': 'Organization',
-      name: '今日热点',
-      logo: { '@type': 'ImageObject', url: 'https://seo-content-site.vercel.app/favicon.svg' },
-    },
-    mainEntityOfPage: { '@type': 'WebPage', '@id': `https://seo-content-site.vercel.app/posts/${post.slug}` },
-  }
-
-  const gradient = CAT_GRADIENTS[post.category] || 'from-gray-700 to-gray-900'
-  const catColor = CAT_COLORS[post.category] || 'cx'
-
-  // 为正文中的 h2 添加 id（用于目录跳转）
-  const contentWithIds = post.content.replace(/<h2([^>]*)>/g, (m, attrs, offset) => {
-    const match = post.content.slice(0, offset).match(/<h2[^>]*>/g)
-    const id = 'heading-' + ((match && match.length) || 0)
-    return `<h2${attrs} id="${id}">`
+  // 为正文 h2 添加 id
+  let headingIdx = 0
+  const contentWithIds = post.content.replace(/<h2([^>]*)>/g, () => {
+    return `<h2${headingIdx++} id="heading-${headingIdx}">`
   })
 
   return (
     <>
-      {/* SEO 结构化数据 */}
       <SEOMeta
         title={post.title}
         description={post.description}
@@ -146,87 +164,62 @@ function PostDetail() {
         publishTime={post.date}
         ogImage={post.coverImage}
       />
-      {/* JSON-LD */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
       <ReadingProgress />
-      <div className="max-w-7xl mx-auto px-4 py-6">
 
-        {/* ===== 主内容 ===== */}
-        <div className="flex gap-8">
+      <div style="max-width:1280px;margin:0 auto;padding:32px 16px;animation:fadeUp 0.5s ease">
+        <div style="display:flex;gap:40px">
 
-          {/* 左侧：文章主体 */}
-          <article className="flex-1 min-w-0">
+          {/* 左侧：文章 */}
+          <article style="flex:1;min-width:0">
 
             {/* 面包屑 */}
-            <div className="flex items-center gap-2 text-sm text-gray-400 mb-5">
-              <Link to="/" className="hover:text-red-500 transition">首页</Link>
-              <span>/</span>
-              <Link to={`/category/${post.category}`} className="hover:text-red-500 transition">{post.category}</Link>
-              <span>/</span>
-              <span className="text-gray-500 truncate max-w-xs">{post.title}</span>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:20px;font-size:13px;color:var(--text-muted)">
+              <Link to="/" style="color:var(--cyan);text-decoration:none">首页</Link>
+              <span>›</span>
+              <Link to={`/category/${post.category}`} style="color:var(--cyan);text-decoration:none">{post.category}</Link>
+              <span>›</span>
+              <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px;color:var(--text-secondary)">{post.title}</span>
             </div>
 
-            {/* 封面大图 */}
-            <div className="relative rounded-2xl overflow-hidden mb-6 shadow-xl">
-              <div className="relative h-72 md:h-96">
-                {post.coverImage ? (
-                  <img src={post.coverImage} alt={post.title} className="w-full h-full object-cover"
-                    onError={e => { e.currentTarget.style.display = 'none' }} />
-                ) : null}
-                <div className="absolute inset-0 bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center">
-                  <span className="text-7xl opacity-20">{'💻📈🏙️🎬⚽🌿🏠🌍🔥'['科技财经社会娱乐体育健康生活国际热点'.indexOf(post.category) / 4] || '📰'}</span>
+            {/* 封面 */}
+            <div style="position:relative;border-radius:18px;overflow:hidden;height:360px;margin-bottom:24px;border:1px solid var(--border);box-shadow:0 8px 40px rgba(0,0,0,0.5)">
+              <CoverImg src={post.coverImage} alt={post.title} category={post.category} />
+              <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(4,4,15,0.95) 0%,rgba(4,4,15,0.5) 50%,transparent 80%)" />
+              <div style="position:absolute;bottom:0;left:0;right:0;padding:24px;z-index:2">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className={`cat-tag cat-tag-${post.category}`}>{CI[post.category]} {post.category}</span>
+                  {post.heat && <span className="heat-badge">🔥 {post.heat}</span>}
                 </div>
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-                <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8">
-                  <div className="flex flex-wrap items-center gap-2 mb-3">
-                    <span className={`text-xs px-3 py-1 rounded-full font-semibold ${catColor}`}>{post.category}</span>
-                    {post.heat && <span className="text-xs bg-orange-500 text-white px-3 py-1 rounded-full font-semibold">🔥 {post.heat}</span>}
-                  </div>
-                  <h1 className="text-white font-bold text-2xl md:text-3xl leading-tight">{post.title}</h1>
-                </div>
+                <h1 style="font-size:24px;font-weight:800;color:#fff;line-height:1.4;text-shadow:0 2px 10px rgba(0,0,0,0.8)">{post.title}</h1>
               </div>
             </div>
 
-            {/* 元信息条 */}
-            <div className="flex items-center justify-between flex-wrap gap-3 mb-5 px-1">
-              <div className="flex items-center gap-4 text-sm text-gray-400">
-                <span className="flex items-center gap-1.5">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                  {post.date}
-                </span>
-                {post.readTime && <span className="flex items-center gap-1.5">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
-                  约{post.readTime}分钟阅读
-                </span>}
-                {post.views && <span className="flex items-center gap-1.5">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-                  {post.views >= 1000 ? (post.views / 1000).toFixed(1) + 'k' : post.views} 阅读
-                </span>}
+            {/* 元信息 */}
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;padding:12px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);margin-bottom:24px">
+              <div style="display:flex;align-items:center;gap:16px;font-size:13px;color:var(--text-muted)">
+                <span style="display:flex;align-items:center;gap:6px">📅 {post.date}</span>
+                {post.readTime && <span style="display:flex;align-items:center;gap:6px">📖 约{post.readTime}分钟阅读</span>}
+                {post.views && <span style="display:flex;align-items:center;gap:6px">👁 {(post.views/1000).toFixed(1)}k 阅读</span>}
               </div>
               <button onClick={copyLink}
-                className="flex items-center gap-1.5 text-sm px-4 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-full transition">
-                {copied ? '✅ 已复制' : '📋 分享'}
+                style="display:flex;align-items:center;gap:6px;font-size:13px;padding:6px 14px;border-radius:8px;border:1px solid var(--border);background:rgba(0,0,0,0.2);color:var(--text-secondary);cursor:pointer;transition:all 0.2s">
+                {copied ? '✅ 已复制' : '📋 分享链接'}
               </button>
             </div>
 
             {/* 摘要 */}
-            <div className="bg-gradient-to-r from-red-50 to-orange-50 border-l-4 border-red-400 rounded-r-xl p-5 mb-7">
-              <p className="text-gray-700 leading-relaxed text-base">{post.description}</p>
+            <div style="background:linear-gradient(135deg,rgba(0,212,255,0.06),rgba(139,92,246,0.06));border-left:3px solid var(--cyan);border-radius:0 12px 12px 0;padding:16px 20px;margin-bottom:24px">
+              <p style="color:var(--text-secondary);line-height:1.8;font-size:15px">{post.description}</p>
             </div>
-
-            {/* 顶部广告 */}
-            <AdComponent position="top" />
 
             {/* 顶部广告 */}
             <AdComponent position="top" />
 
             {/* 正文 */}
-            <div className="prose-custom mb-8">
+            <div style="margin-bottom:32px">
               <div
-                className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8"
+                className="prose-cyber"
+                style="background:rgba(8,8,24,0.6);border:1px solid var(--border);border-radius:16px;padding:28px 32px;backdrop-filter:blur(8px)"
                 dangerouslySetInnerHTML={{ __html: contentWithIds }}
               />
             </div>
@@ -234,24 +227,17 @@ function PostDetail() {
             {/* 中部广告 */}
             <AdComponent position="middle" />
 
-            {/* FAQ 折叠 */}
+            {/* FAQ */}
             {post.faq && post.faq.length > 0 && (
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8 mb-8">
-                <h2 className="text-lg font-bold text-gray-900 mb-5 flex items-center gap-2">
-                  <span className="text-blue-500">❓</span> 常见问题
-                </h2>
-                <div className="space-y-3">
+              <div style="margin:32px 0;background:rgba(8,8,24,0.6);border:1px solid var(--border);border-radius:16px;padding:24px;backdrop-filter:blur(8px)">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;font-size:16px;font-weight:700;color:var(--cyan)">
+                  <span>❓</span> 常见问题
+                </div>
+                <div style="display:flex;flex-direction:column;gap:8px">
                   {post.faq.map((item, i) => (
-                    <details key={i} className="group border border-gray-100 rounded-xl overflow-hidden">
-                      <summary className="flex items-center justify-between gap-3 px-5 py-4 cursor-pointer bg-gray-50 hover:bg-gray-100 transition font-medium text-gray-800 list-none">
-                        <span>{item.question}</span>
-                        <svg className="w-4 h-4 text-gray-400 group-open:rotate-180 transition-transform flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
-                      </summary>
-                      <div className="px-5 py-4 text-gray-600 leading-relaxed border-t border-gray-100 bg-white">
-                        {item.answer}
-                      </div>
+                    <details key={i} className="cyber-details">
+                      <summary>{item.question || item.q}</summary>
+                      <div className="cyber-answer">{item.answer || item.a}</div>
                     </details>
                   ))}
                 </div>
@@ -260,46 +246,42 @@ function PostDetail() {
 
             {/* 标签 */}
             {post.tags && post.tags.length > 0 && (
-              <div className="flex flex-wrap gap-2 mb-8">
+              <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:32px">
                 {post.tags.map(tag => (
-                  <span key={tag} className="text-sm px-4 py-1.5 bg-gray-100 text-gray-500 rounded-full hover:bg-red-50 hover:text-red-500 transition cursor-default">
-                    #{tag}
-                  </span>
+                  <span key={tag} className="cyber-tag">#{tag}</span>
                 ))}
               </div>
             )}
 
-            {/* 导航 */}
-            <div className="flex gap-4">
-              <Link to="/" className="flex-1 text-center py-3 bg-white border border-gray-200 rounded-xl text-gray-600 hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition text-sm font-medium">
+            {/* 导航按钮 */}
+            <div style="display:flex;gap:12px">
+              <Link to="/" className="btn-neon" style="flex:1;text-align:center;text-decoration:none">
                 ← 返回首页
               </Link>
-              <Link to={`/category/${post.category}`} className="flex-1 text-center py-3 bg-red-500 text-white rounded-xl hover:bg-red-600 transition text-sm font-medium">
+              <Link to={`/category/${post.category}`} className="btn-neon-red" style="flex:1;text-align:center;text-decoration:none">
                 更多{post.category} →
               </Link>
             </div>
           </article>
 
           {/* 右侧：目录+相关 */}
-          <aside className="w-64 flex-shrink-0 hidden xl:block">
-            <div className="sticky top-24 space-y-5">
-              {/* 目录 */}
-              <TableOfContents content={post.content} />
+          <aside style="width:240px;flex-shrink:0;display:none;@media(min-width:1024px){display:block}">
+            <div style="position:sticky;top:88px;display:flex;flex-direction:column;gap:20px">
+              <TOC content={post.content} />
 
               {/* 相关文章 */}
               {related.length > 0 && (
-                <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-                  <div className="px-4 py-3 bg-gray-50 border-b border-gray-100">
-                    <p className="font-semibold text-gray-800 text-sm">📰 相关推荐</p>
-                  </div>
-                  <div className="divide-y divide-gray-50">
-                    {related.map(p => (
-                      <Link key={p.slug} to={`/posts/${p.slug}`} className="block px-4 py-3 hover:bg-gray-50 transition group">
-                        <p className="text-sm text-gray-700 group-hover:text-red-600 line-clamp-2 leading-snug font-medium">{p.title}</p>
-                        <p className="text-xs text-gray-400 mt-1">{p.date}</p>
-                      </Link>
-                    ))}
-                  </div>
+                <div style="background:rgba(8,8,24,0.8);border:1px solid var(--border);border-radius:14px;overflow:hidden;backdrop-filter:blur(12px)">
+                  <div style="padding:12px 16px;background:rgba(0,212,255,0.05);border-bottom:1px solid var(--border);font-size:13px;font-weight:700;color:var(--cyan)">📰 相关推荐</div>
+                  {related.map(p => (
+                    <Link key={p.slug} to={`/posts/${p.slug}`}
+                      style="display:block;padding:12px 16px;border-bottom:1px solid var(--border);text-decoration:none;transition:background 0.2s"
+                      className="related-item"
+                      >
+                      <div style={{ fontSize:"13px", color:"var(--text-secondary)", lineHeight:"1.5", overflow:"hidden", display:"-webkit-box", WebkitLineClamp:2, WebkitBoxOrient:"vertical", marginBottom:"4px" }}>{p.title}</div>
+                      <div style={{ fontSize:11, color:"var(--text-muted)" }}>{p.date}</div>
+                    </Link>
+                  ))}
                 </div>
               )}
             </div>
@@ -308,37 +290,24 @@ function PostDetail() {
       </div>
 
       <style>{`
-        .prose-custom h2 {
-          font-size: 1.15rem;
+        .prose-cyber h2 {
+          font-size: 18px;
           font-weight: 700;
-          color: #111827;
-          margin: 2rem 0 0.875rem 0;
-          padding-bottom: 0.5rem;
-          border-bottom: 1px solid #f3f4f6;
+          color: #00d4ff;
+          margin: 28px 0 14px 0;
+          padding-bottom: 8px;
+          border-bottom: 1px solid rgba(26,26,64,0.8);
+          letter-spacing: 0.3px;
           scroll-margin-top: 100px;
         }
-        .prose-custom p {
-          color: #374151;
-          line-height: 1.8;
-          margin-bottom: 1rem;
-          font-size: 0.95rem;
+        .prose-cyber p {
+          color: #8888bb;
+          line-height: 1.9;
+          margin-bottom: 14px;
+          font-size: 15px;
         }
-        .prose-custom strong {
-          color: #111827;
-          font-weight: 600;
-        }
-        .prose-custom ul, .prose-custom ol {
-          margin: 1rem 0;
-          padding-left: 1.5rem;
-          color: #374151;
-        }
-        .prose-custom li {
-          margin-bottom: 0.5rem;
-          line-height: 1.7;
-        }
+        .prose-cyber strong { color: #f0f0ff; font-weight: 700; }
       `}</style>
     </>
   )
 }
-
-export default PostDetail
