@@ -1,5 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { useState, useEffect, useRef } from 'react'
+import AdComponent from '../components/AdComponent'
 
 const CI = { '科技':'💻','财经':'📈','社会':'🏙️','娱乐':'🎬','体育':'⚽','健康':'🌿','生活':'🏠','国际':'🌍','热点':'🔥' }
 const CC = { '科技':'bg-purple-100 text-purple-700','财经':'bg-yellow-100 text-yellow-700','社会':'bg-gray-100 text-gray-700','娱乐':'bg-pink-100 text-pink-700','体育':'bg-green-100 text-green-700','健康':'bg-teal-100 text-teal-700','生活':'bg-orange-100 text-orange-700','国际':'bg-indigo-100 text-indigo-700','热点':'bg-red-100 text-red-700' }
@@ -224,6 +225,9 @@ export default function Home() {
             </div>
           </div>
         )}
+
+        {/* 首页底部广告 */}
+        <AdComponent position="middle" />
       </div>
     </div>
   )

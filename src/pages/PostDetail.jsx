@@ -1,6 +1,7 @@
 import { useParams, Link } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { CoverImage, CAT_COLORS, CAT_GRADIENTS } from './Home'
+import AdComponent from '../components/AdComponent'
 
 // 阅读进度条
 function ReadingProgress() {
@@ -184,6 +185,12 @@ function PostDetail() {
               <p className="text-gray-700 leading-relaxed text-base">{post.description}</p>
             </div>
 
+            {/* 顶部广告 */}
+            <AdComponent position="top" />
+
+            {/* 顶部广告 */}
+            <AdComponent position="top" />
+
             {/* 正文 */}
             <div className="prose-custom mb-8">
               <div
@@ -191,6 +198,9 @@ function PostDetail() {
                 dangerouslySetInnerHTML={{ __html: contentWithIds }}
               />
             </div>
+
+            {/* 中部广告 */}
+            <AdComponent position="middle" />
 
             {/* FAQ 折叠 */}
             {post.faq && post.faq.length > 0 && (

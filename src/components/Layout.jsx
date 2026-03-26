@@ -1,5 +1,6 @@
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
+import AdComponent from './AdComponent'
 
 const CAT_ICONS = { '科技':'💻','财经':'📈','社会':'🏙️','娱乐':'🎬','体育':'⚽','健康':'🌿','生活':'🏠','国际':'🌍','热点':'🔥' }
 const CAT_COLORS = {
@@ -78,6 +79,10 @@ function Layout() {
         <Outlet />
       </main>
       <footer className="bg-gray-800 text-gray-400 py-6 mt-8">
+        {/* 底部广告 */}
+        <div className="max-w-7xl mx-auto px-4 mb-6">
+          <AdComponent position="bottom" />
+        </div>
         <div className="max-w-7xl mx-auto px-4 text-center text-sm">
           <div className="flex justify-center gap-6 mb-3 flex-wrap">
             {Object.entries(CAT_ICONS).map(([cat, icon]) => (

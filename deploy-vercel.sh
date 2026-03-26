@@ -1,12 +1,11 @@
 #!/bin/bash
-
 # =============================================
-# SEO内容站 - 一键部署到 Vercel
+# SEO内容站 - 快速构建 + 部署脚本
+# 支持 Vercel + 国内 CDN 加速
 # =============================================
 
 set -e
 
-# 颜色
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
 YELLOW='\033[1;33m'
@@ -15,103 +14,80 @@ CYAN='\033[0;36m'
 NC='\033[0m'
 
 echo ""
-echo "╔════════════════════════════════════════════╗"
-echo "║     🚀 SEO内容站 - Vercel一键部署         ║"
-echo "╚════════════════════════════════════════════╝"
+echo "╔══════════════════════════════════════════╗"
+echo "║   🚀 SEO内容站 - 构建+部署              ║"
+echo "╚══════════════════════════════════════════╝"
 echo ""
 
 PROJECT_DIR="$HOME/.qclaw/workspace/seo-content-site"
 cd "$PROJECT_DIR"
 
-# 1. 检查 GitHub 仓库
-echo -e "${BLUE}[1/5]${NC} 检查 GitHub 仓库..."
-
-if [ ! -d ".git" ]; then
-    echo -e "${YELLOW}⚠️  未检测到 Git 仓库${NC}"
-    echo ""
-    read -p "请输入你的 GitHub 仓库地址 (例如: https://github.com/用户名/seo-site): " REPO_URL
-    
-    if [ -z "$REPO_URL" ]; then
-        echo -e "${RED}❌ 未提供仓库地址${NC}"
-        echo ""
-        echo "请先在 GitHub 创建仓库，然后运行此脚本"
-        exit 1
-    fi
-    
-    echo -e "${BLUE}初始化 Git 仓库...${NC}"
-    git init
-    git remote add origin "$REPO_URL"
-fi
-
-GIT_USER=$(git remote get-url origin 2>/dev/null | sed 's/.*github.com[:/]\([^/]*\).*/\1/' || echo "")
-GIT_REPO=$(git remote get-url origin 2>/dev/null | sed 's/.*github.com[:/].*[/]\(.*\)\.git/\1/' || echo "")
-
-if [ -z "$GIT_USER" ] || [ -z "$GIT_REPO" ]; then
-    echo -e "${RED}❌ 无法解析 GitHub 仓库信息${NC}"
-    echo "请确保 remote URL 格式正确"
-    exit 1
-fi
-
-echo -e "${GREEN}✅ 仓库: $GIT_USER/$GIT_REPO${NC}"
-
-# 2. 生成内容
-echo ""
-echo -e "${BLUE}[2/5]${NC} 生成 SEO 内容..."
+# 1. 生成内容
+echo -e "${BLUE}[1/5]${NC} 生成文章内容..."
 node src/scripts/generate.js
 
-# 3. 提交代码
+# 2. 安装依赖
 echo ""
-echo -e "${BLUE}[3/5]${NC} 提交代码到 GitHub..."
-
-git add .
-git commit -m "deploy: ready for Vercel [$(date '+%Y-%m-%d %H:%M:%S')]" 2>/dev/null || echo "没有新变更需要提交"
-
-echo -e "${GREEN}推送代码到 GitHub...${NC}"
-git push origin main 2>/dev/null || git push origin master 2>/dev/null
-
-echo -e "${GREEN}✅ 代码已推送到 GitHub${NC}"
-
-# 4. 安装 Vercel CLI
-echo ""
-echo -e "${BLUE}[4/5]${NC} 检查 Vercel CLI..."
-
-if ! command -v vercel &> /dev/null; then
-    echo -e "${YELLOW}安装 Vercel CLI...${NC}"
-    npm install -g vercel
+echo -e "${BLUE}[2/5]${NC} 检查依赖..."
+if [ ! -d "node_modules" ]; then
+  echo -e "${YELLOW}安装依赖...${NC}"
+  npm install
 fi
 
-# 5. 部署
+# 3. 构建
 echo ""
-echo -e "${BLUE}[5/5]${NC} 部署到 Vercel..."
+echo -e "${BLUE}[3/5]${NC} 构建生产版本..."
+npm run build
+
+# 检查 dist 目录
+if [ ! -d "dist" ]; then
+  echo -e "${RED}❌ 构建失败：dist 目录不存在${NC}"
+  exit 1
+fi
+echo -e "${GREEN}✅ 构建成功！${NC}"
+
+DIST_SIZE=$(du -sh dist | cut -f1)
+echo -e "   产物大小：${CYAN}$DIST_SIZE${NC}"
+
+# 4. 部署
+echo ""
+echo -e "${BLUE}[4/5]${NC} 部署到 Vercel..."
 echo ""
 
-# 运行 vercel 部署
-cd "$PROJECT_DIR"
-vercel --yes --prod 2>&1 | tee /tmp/vercel-deploy.log
-
-# 提取部署 URL
-DEPLOY_URL=$(grep -o 'https://[^ ]*\.vercel\.app' /tmp/vercel-deploy.log | head -1)
-
-echo ""
-echo "╔════════════════════════════════════════════╗"
-if [ -n "$DEPLOY_URL" ]; then
-    echo -e "${GREEN}║     🎉 部署成功！                        ║"
-    echo "╚════════════════════════════════════════════╝"
-    echo ""
-    echo -e "🌐 你的网站已上线:"
-    echo -e "   ${CYAN}$DEPLOY_URL${NC}"
-    echo ""
-    echo -e "🔒 SSL 证书已自动配置"
-    echo -e "🌍 全球 CDN 已启用"
-    echo ""
-    echo -e "📌 下次部署: 只需运行 ${YELLOW}git push${NC} 即可自动触发"
+if command -v vercel &> /dev/null; then
+  vercel --yes --prod 2>&1 | tee /tmp/vercel-deploy.log
+  DEPLOY_URL=$(grep -o 'https://[^ ]*\.vercel\.app' /tmp/vercel-deploy.log | head -1)
 else
-    echo -e "${YELLOW}║     ⚠️  部署进行中                       ║"
-    echo "╚════════════════════════════════════════════╝"
-    echo ""
-    echo -e "请访问 ${CYAN}https://vercel.com/dashboard${NC} 查看部署状态"
+  echo -e "${YELLOW}Vercel CLI 未安装，引导部署...${NC}"
+  echo -e "   1. 安装：npm i -g vercel"
+  echo -e "   2. 登录：vercel login"
+  echo -e "   3. 部署：vercel --prod"
+  echo ""
+  echo -e "   或者手动将 dist 目录上传到你的服务器/CDN"
+  DEPLOY_URL=""
+fi
+
+# 5. 完成
+echo ""
+echo "╔══════════════════════════════════════════╗"
+if [ -n "$DEPLOY_URL" ]; then
+  echo -e "${GREEN}║   🎉 部署成功！                       ║"
+  echo "╚══════════════════════════════════════════╝"
+  echo ""
+  echo -e "🌐 网站地址：${CYAN}$DEPLOY_URL${NC}"
+  echo ""
+  echo -e "📌 国内访问优化："
+  echo -e "   Vercel 自动启用全球 CDN，国内访问推荐配合"
+  echo -e "   国内镜像服务（如 Netlify CN、自动秒信/织雁云）"
+  echo ""
+  echo -e "📌 广告接入："
+  echo -e "   编辑 src/data/ads.config.js 配置广告 ID"
+  echo ""
+else
+  echo -e "${YELLOW}║   ⚠️  需手动部署                     ║"
+  echo "╚══════════════════════════════════════════╝"
+  echo ""
+  echo -e "dist 目录已准备就绪（大小：${CYAN}$DIST_SIZE${NC}）"
+  echo -e "请通过 Vercel / Netlify / 你的服务器上传部署"
 fi
 echo ""
-
-# 保存部署信息
-echo "$DEPLOY_URL" > .vercel-url
