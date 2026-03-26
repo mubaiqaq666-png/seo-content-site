@@ -2,7 +2,6 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "framework": "vite",
-  "regions": ["hnd1", "sin1", "syd1", "iad1"],
   "env": {
     "SITE_URL": "https://seo-content-site.vercel.app"
   },
