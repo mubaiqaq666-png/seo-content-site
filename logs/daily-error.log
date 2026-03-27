@@ -1,0 +1,3 @@
+/bin/sh: node: command not found
+❌ 错误: Command failed: node "/Users/mubai/.qclaw/workspace/seo-content-site/src/scripts/fetchHotTopics.js" 10
+/bin/sh: node: command not found

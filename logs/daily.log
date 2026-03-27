@@ -1,0 +1,9 @@
+
+📡 开始抓取 10 篇真实文章...
+
+[2026-03-27T01:02:54.351Z] ======== 每日内容更新开始 ========
+[2026-03-27T01:02:54.351Z] ======== 每日内容更新开始 ========
+[2026-03-27T01:02:54.352Z] 📡 开始抓取 30 篇新文章...
+[2026-03-27T01:02:54.352Z] 📡 开始抓取 30 篇新文章...
+[2026-03-27T01:02:54.362Z] ❌ 更新失败: Command failed: node "/Users/mubai/.qclaw/workspace/seo-content-site/src/scripts/fetchHotTopics.js" 30
+[2026-03-27T01:02:54.362Z] ❌ 更新失败: Command failed: node "/Users/mubai/.qclaw/workspace/seo-content-site/src/scripts/fetchHotTopics.js" 30

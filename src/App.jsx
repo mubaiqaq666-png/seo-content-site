@@ -4,7 +4,8 @@ import Posts from './pages/Posts'
 import PostDetail from './pages/PostDetail'
 import Category from './pages/Category'
 import About from './pages/About'
-import AdsDashboard from './pages/AdsDashboard'
+import Privacy from './pages/Privacy'
+import Terms from './pages/Terms'
 import './index.css'
 
 export default function App() {
@@ -16,7 +17,8 @@ export default function App() {
         <Route path="/posts/:slug" element={<PostDetail />} />
         <Route path="/category/:category" element={<Category />} />
         <Route path="/about" element={<About />} />
-        <Route path="/admin/ads" element={<AdsDashboard />} />
+        <Route path="/privacy" element={<Privacy />} />
+        <Route path="/terms" element={<Terms />} />
         <Route path="*" element={<Home />} />
       </Routes>
     </BrowserRouter>

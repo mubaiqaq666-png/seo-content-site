@@ -12,7 +12,8 @@
     "fetch": "node src/scripts/fetchHotTopics.js",
     "dashboard": "node src/scripts/dashboard-server.js",
     "cms": "node src/scripts/cms.js",
-    "sync": "bash sync.sh"
+    "sync": "bash sync.sh",
+    "panel": "node src/scripts/dashboard-server.js"
   },
   "dependencies": {
     "react": "^18.2.0",
